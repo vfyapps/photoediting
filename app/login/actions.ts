@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { z } from "zod";
 
+import type { LoginState } from "@/app/login/state";
 import { createClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
@@ -13,16 +14,6 @@ const loginSchema = z.object({
     .email("Vul een geldig e-mailadres in")
     .max(254, "E-mailadres is te lang"),
 });
-
-export type LoginState = {
-  status: "idle" | "success" | "error";
-  message: string;
-};
-
-export const initialLoginState: LoginState = {
-  status: "idle",
-  message: "",
-};
 
 export async function requestMagicLink(
   _previousState: LoginState,

@@ -3,10 +3,8 @@
 import { useActionState } from "react";
 import { ArrowRight, CheckCircle2, LoaderCircle, Mail } from "lucide-react";
 
-import {
-  initialLoginState,
-  requestMagicLink,
-} from "@/app/login/actions";
+import { requestMagicLink } from "@/app/login/actions";
+import { initialLoginState } from "@/app/login/state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
