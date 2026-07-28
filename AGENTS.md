@@ -52,7 +52,13 @@ backlog → new → in_process → qc → approved
 
 ## Screens
 
-### 1. Assignments (home screen)
+### 1. Login
+- Email-only login with a Supabase magic link.
+- After opening the link, the user is signed in and redirected to the assignments overview.
+- Every route except `/login` and the auth callback requires a valid session. Users without
+  a valid session are always redirected to `/login`.
+
+### 2. Assignments (home screen)
 Two views on the same data, with a toggle: **board** (columns per status) and **table**.
 Table is the default once there are more than 50 rows.
 
@@ -64,7 +70,7 @@ Table is the default once there are more than 50 rows.
 - A row older than `qc_reminder_days` while in status `qc` gets a visual flag.
 - Bulk action: select rows and assign to an editor, or change priority.
 
-### 2. Assignment detail
+### 3. Assignment detail
 Three columns on desktop, stacked on mobile.
 
 - **Left**: acco ID, rental expert, dates, priority, editor, status buttons.
@@ -81,7 +87,7 @@ Three columns on desktop, stacked on mobile.
 - Only show the `legacy_notes` field when it is populated, labeled "Notitie uit Excel"
   (Dutch UI label — see Rules), clearly marked as read-only history.
 
-### 3. QC
+### 4. QC
 Coordinator and admin only.
 
 - Queue of everything in status `qc`, oldest first.
@@ -93,14 +99,14 @@ Coordinator and admin only.
   the database.
 - A finding without a category is not allowed. Category `other` requires a comment.
 
-### 4. Guidelines
+### 5. Guidelines
 - Overview by category, markdown rendered, searchable.
 - Coordinator can edit in a simple markdown editor with live preview.
 - Images from the Supabase Storage bucket `guidelines`, labelable per guideline as a good
   or bad example, shown side by side.
 - Every guideline has a stable URL so it can be linked to from Teams.
 
-### 5. Dashboard
+### 6. Dashboard
 Reads exclusively from the views. Must contain at minimum:
 - Counts per status, approval rate, average cycle time, total photos.
 - Performance per editor.

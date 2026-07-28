@@ -18,6 +18,18 @@ Vereisten: Node.js 20.9 of nieuwer en npm.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: publieke anon key voor browser en server.
 - `SUPABASE_SERVICE_ROLE_KEY`: uitsluitend voor scripts. Importeer deze nooit in app-code.
 
+## Magic-link-inlog instellen
+
+Voeg in Supabase onder **Authentication → URL Configuration** de callback-URL toe aan de
+redirect-allowlist:
+
+- lokaal: `http://localhost:3000/auth/callback`
+- productie: `https://<vercel-domein>/auth/callback`
+
+Stel de productie-URL ook in als Site URL. De standaard magic-link-template moet de
+`ConfirmationURL` gebruiken. Alleen bestaande Supabase-gebruikers kunnen inloggen; de app
+maakt via het inlogformulier geen nieuwe accounts aan.
+
 ## Databasetypes genereren
 
 `db/01_schema.sql` is de gezaghebbende bron voor het schema. Koppel de Supabase CLI eerst
