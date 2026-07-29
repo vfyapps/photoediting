@@ -58,8 +58,8 @@ export default async function LoginPage({
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Welkom terug</h1>
           <p className="mb-8 mt-3 text-sm leading-6 text-muted-foreground">
-            Vul je zakelijke e-mailadres in. Je ontvangt een beveiligde link
-            waarmee je direct kunt inloggen.
+            Log in met een beveiligde magic link of gebruik tijdelijk je
+            beheerderswachtwoord.
           </p>
           <LoginForm
             callbackError={
@@ -70,7 +70,7 @@ export default async function LoginPage({
             configured={configured}
           />
           <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
-            De inloglink is eenmalig te gebruiken. Deel hem niet met anderen.
+            Gebruik alleen je eigen inloggegevens en deel ze niet met anderen.
           </p>
         </div>
       </section>

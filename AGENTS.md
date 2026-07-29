@@ -13,6 +13,55 @@ without explicitly flagging that you are doing so.
 - No extra state library. Server components for reads, server actions for writes.
 - `@supabase/ssr` for session management. Never use the service-role key in client code.
 
+## Design direction
+
+This is an operational workflow tracker with a review step, not a consumer app or a
+marketing dashboard. Think issue tracker, not landing page: an assignment is a ticket,
+`status` is the workflow, QC is the review/approval gate.
+
+**Primary reference: Linear.** Match its density and restraint, not its exact colors:
+- Calm, mostly neutral surface. Color is reserved for things that carry meaning (status,
+  priority), not decoration.
+- Compact row height. Borders instead of drop shadows to separate elements. No thick
+  rounded cards with heavy shadows.
+- One accent color used sparingly for interactive elements (see below), not sprinkled
+  across the UI.
+- Keyboard shortcuts are a first-class feature on the QC screen (see Screen 4), not an
+  afterthought.
+
+**Secondary reference for the Guidelines screen only: Notion.** That screen should read
+like a calm document — generous line height, readable long-form markdown next to compact
+metadata — not like a dashboard.
+
+**Brand accent:** use the VfY teal (`#1D9E75` / Tailwind-equivalent in the `teal` family)
+as the single accent color for interactive elements (primary buttons, links, active
+filters, focus states). Do not use shadcn's default blue as the accent anywhere in the app.
+
+**Status colors** (semantic, independent of the brand accent, used consistently everywhere
+a status appears — board, table, detail screen, QC):
+
+| Status | Color role |
+| --- | --- |
+| `new` | blue-gray (neutral-informational) |
+| `in_process` | violet |
+| `qc` | amber |
+| `approved` | green |
+| `denied` | red |
+| `ai_rejected` | gray (muted, end state) |
+| `backlog` | gray, lower contrast than `ai_rejected` |
+
+Priority uses its own small scale, not the status colors: `high` = red-orange accent,
+`medium` = amber, `low` = neutral gray. Do not reuse status colors for priority — the two
+must be visually distinguishable at a glance.
+
+**General visual rules:**
+- Typography carries hierarchy (size and weight), not color or boxes. Reserve color for
+  status, priority, and the single brand accent.
+- Status and priority render as small pill-shaped badges, not colored table cells or
+  colored text.
+- No decorative gradients, no heavy card shadows. Hairline borders (`border` token) to
+  separate sections and rows.
+
 ## Database
 
 The schema lives in `db/01_schema.sql` and is authoritative. Do not invent extra tables or
@@ -54,21 +103,49 @@ backlog → new → in_process → qc → approved
 
 ### 1. Login
 - Email-only login with a Supabase magic link.
+- Temporary email-and-password login for admin testing, alongside the magic-link flow.
 - After opening the link, the user is signed in and redirected to the assignments overview.
 - Every route except `/login` and the auth callback requires a valid session. Users without
   a valid session are always redirected to `/login`.
 
 ### 2. Assignments (home screen)
-Two views on the same data, with a toggle: **board** (columns per status) and **table**.
-Table is the default once there are more than 50 rows.
+This screen is the primary daily workspace, not an archive browser. Optimize for "what
+needs my attention right now", not for showing every row that has ever existed.
 
-- Filters: status, editor, rental expert, priority, editing goal, search by acco ID.
-- Filter state lives in the URL, so a filtered view is shareable.
-- Backlog is hidden by default, with a separate toggle.
-- Visible per row: acco ID, rental expert, photo count, goals as badges, priority, editor,
-  days open.
-- A row older than `qc_reminder_days` while in status `qc` gets a visual flag.
-- Bulk action: select rows and assign to an editor, or change priority.
+**Default scope:** show only open work by default — statuses `new`, `in_process`, `qc`,
+`denied`. Completed and closed work (`approved`, `ai_rejected`) sits behind a separate
+"Archief" toggle, off by default. `backlog` stays behind its own toggle as before, also off
+by default. This is a bigger change from Excel than it looks: Excel had no way to hide
+finished rows, so everyone scrolled past 126 completed rows to find the 4 that needed
+action. The app should not repeat that.
+
+**Default view:** board (columns per status), not table. The board is what makes workload
+visible at a glance — how many sit in each stage — which a table cannot show without
+counting. Table remains available as a toggle for users who want a flat, sortable list, and
+becomes more useful once a filter narrows the set below roughly 50 rows.
+
+**Grouping switch:** a control to group the board or table by **status** (default) or by
+**editor**. Status grouping answers "where is work stuck"; editor grouping answers "what
+does each person have open". Same underlying data and filters, different grouping key.
+
+**Row content — compact, not column-heavy:** avoid one column per data point. Each row/card
+shows:
+- Primary line: acco ID, rental expert.
+- Subline (smaller, muted text): photo count and goals together, e.g. "12 foto's ·
+  Sfeer, Belichting" instead of a separate photo-count column and a separate goals column.
+- Status and priority as small badges (see Design direction).
+- Editor as a small avatar/initials circle plus name, not plain text alone.
+- Days open, right-aligned. A row past `qc_reminder_days` while in status `qc` gets a
+  visual flag (see Design direction for status colors — use a subtle background tint, not
+  just a text color change).
+
+**Filters:** status, editor, rental expert, priority, editing goal, search by acco ID.
+Filter state lives in the URL, so a filtered view is shareable. In addition to the filter
+controls, provide a small set of one-click quick filters above them: "Mijn opdrachten"
+(assigned to the current user), "Hoge prioriteit", and "Langer dan qc_reminder_days in QC".
+Quick filters are shortcuts onto the same filter state, not a separate mechanism.
+
+**Bulk action:** select rows and assign to an editor, or change priority.
 
 ### 3. Assignment detail
 Three columns on desktop, stacked on mobile.
@@ -98,6 +175,9 @@ Coordinator and admin only.
 - Rounds are shown side by side: round 1, round 2, and so on. The round number is set by
   the database.
 - A finding without a category is not allowed. Category `other` requires a comment.
+- Keyboard shortcuts to move through the queue quickly: arrow keys (or `j`/`k`) to move to
+  the next/previous item, a shortcut to approve, and a shortcut to open the deny/findings
+  form. Show the available shortcuts in a small hint in the UI.
 
 ### 5. Guidelines
 - Overview by category, markdown rendered, searchable.

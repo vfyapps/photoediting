@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import type { LoginState } from "@/app/login/state";
@@ -13,6 +14,13 @@ const loginSchema = z.object({
     .min(1, "Vul je e-mailadres in")
     .email("Vul een geldig e-mailadres in")
     .max(254, "E-mailadres is te lang"),
+});
+
+const passwordLoginSchema = loginSchema.extend({
+  password: z
+    .string()
+    .min(1, "Vul je wachtwoord in")
+    .max(1024, "Wachtwoord is te lang"),
 });
 
 export async function requestMagicLink(
@@ -81,4 +89,46 @@ export async function requestMagicLink(
     message:
       "Controleer je inbox. Als het e-mailadres bekend is, ontvang je binnen enkele minuten een inloglink.",
   };
+}
+
+export async function loginWithPassword(
+  _previousState: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const parsed = passwordLoginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: parsed.error.issues[0]?.message ?? "Controleer de inloggegevens",
+    };
+  }
+
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return {
+      status: "error",
+      message: "Supabase is nog niet ingesteld. Neem contact op met de beheerder.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (error) {
+    return {
+      status: "error",
+      message: "E-mailadres of wachtwoord is onjuist.",
+    };
+  }
+
+  redirect("/");
 }
