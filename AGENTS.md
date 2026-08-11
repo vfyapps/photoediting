@@ -11,17 +11,24 @@ without explicitly flagging that you are doing so.
 
 This file is the single authoritative build spec. The copy in the `AI MDs` repo
 (`projects/photo-editing/photo-editing.md`) is a pointer to this file, not a second source.
-`AGENTS NL.md` in the parent folder is the superseded Dutch v1.0 and should be deleted.
 
-Background and the reasoning behind the decisions below live in
-`AI MDs/projects/photo-editing/app-voorbereiding.md`. Read that once before starting; read
-this file on every task.
+## Where things live
 
-## Shared company context
+This repo sits in `Support projects/07 Tools and Code/Tools and scripts/photoediting`.
+Paths below are relative to that, so `../../AI MDs/` is the agent-context repo
+(`github.com/vfyapps/vfy-agent-context`) two levels up.
 
-`AI MDs/vfy-context.md` holds company-wide context. Applicable here: the acco-id convention
-(§3) and the writing conventions (§6). **Not** applicable: the je/u form rule in §5, since
-this is an internal work tool with no guest or homeowner contact.
+| Path | What it is |
+|---|---|
+| `../../AI MDs/vfy-context.md` | company-wide context |
+| `../../AI MDs/projects/photo-editing/app-voorbereiding.md` | the reasoning behind the decisions here. Read once before starting |
+| `../../AI MDs/skills/vfy-app-design/` | binding design system, including `starter/` |
+| `../toeristenbelasting-scraper/review-app` | the starter applied in a real VfY project |
+| `docs/` | source material: the Excel tracker, the old tutorial, the concept mockup, the migration log |
+
+From `vfy-context.md`, applicable here: the acco-id convention (§3) and the writing
+conventions (§6). **Not** applicable: the je/u form rule in §5, since this is an internal
+work tool with no guest or homeowner contact.
 
 ---
 
@@ -37,18 +44,19 @@ this is an internal work tool with no guest or homeowner contact.
 
 ## Design direction
 
-`AI MDs/skills/vfy-app-design/SKILL.md` is binding and takes precedence over everything in
-this section. Copy `skills/vfy-app-design/starter/` into the project (tokens, fonts, and
-the twelve `components/ui/` files) and build from those. The two hand-written components
+`../../AI MDs/skills/vfy-app-design/SKILL.md` is binding and takes precedence over
+everything in this section. Copy its `starter/` into the project (tokens, fonts, and the
+twelve `components/ui/` files) and build from those. The two hand-written components
 currently in `components/ui/` (`button.tsx`, `badge.tsx`) get replaced by the starter
 versions, not merged with them.
 
-Two references worth reading before building a screen:
-- `AI MDs/skills/vfy-app-design/starter/README.md` for the known gotchas.
-- `Tools and scripts/toeristenbelasting-scraper/review-app` for how the starter is applied
-  in a real VfY project. First place to look, ahead of any external template.
-- `Tools and scripts/ai-photo-editing/concept-mockup.html` for the intended screen layout
-  of both the tracker and the academy. It already uses the correct tokens.
+Three references worth reading before building a screen:
+- `../../AI MDs/skills/vfy-app-design/starter/README.md` for the known gotchas.
+- `../toeristenbelasting-scraper/review-app` for how the starter is applied in a real VfY
+  project. First place to look, ahead of any external template.
+- `docs/concept-mockup.html` for the intended screen layout of both the tracker and the
+  academy. It already uses the correct tokens. See `docs/README.md` for the two things in
+  it that are deliberately not built.
 
 **What this section adds on top of the skill**, none of which conflicts with it:
 
@@ -318,7 +326,7 @@ add a block editor: markdown stays readable and portable, block-editor JSON does
 ### 6. Dashboard
 Coordinator and admin only. Reads exclusively from the views.
 
-Charts use **Recharts**. Read `AI MDs` skill `dataviz` before writing the first chart:
+Charts use **Recharts**. Invoke the `dataviz` skill before writing the first chart:
 `vfy-app-design` covers tokens and components but says nothing about axes, legends, or
 colour within a chart, and this screen is chart-heavy.
 
