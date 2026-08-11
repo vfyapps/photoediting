@@ -35,19 +35,23 @@ work tool with no guest or homeowner contact.
 | Skill | Use it for | Where it comes from |
 |---|---|---|
 | `vfy-app-design` | every screen. Binding, see Design direction | `../../AI MDs/skills/` |
-| `supabase-postgres-best-practices` | every change to `db/`: RLS policies, indexes, query shape. Not optional on the RLS work — there are 20+ policies and a wrong one fails silently | plugin, see below |
+| `supabase-postgres-best-practices` | every change to `db/`: RLS policies, indexes, query shape. Not optional on the RLS work — there are 20+ policies and a wrong one fails silently | see below |
+| `supabase` | `@supabase/ssr`, auth, session handling | see below |
 | `dataviz` | the dashboard charts. `vfy-app-design` covers tokens and components, not axes, legends or colour within a chart | bundled with Claude |
 
-The Supabase skills are installed as a plugin rather than copied into the context repo,
-because they are externally maintained and a copy ages silently. If they are missing:
+The Supabase skills are installed globally, not vendored into the context repo, because
+they are externally maintained and we do not adapt them. Installed as a checkout plus
+junctions, mirroring how `vfy-app-design` is wired up:
 
 ```
-claude plugin marketplace add supabase/agent-skills
-claude plugin install supabase@supabase-agent-skills
+~/.claude/skills-external/supabase-agent-skills   git clone (MIT)
+~/.claude/skills/supabase                         junction
+~/.claude/skills/supabase-postgres-best-practices junction
 ```
 
-Installing a plugin mid-session does not take effect in that session. Install first, then
-start the session.
+Update with `git -C ~/.claude/skills-external/supabase-agent-skills pull`. If the skills
+are missing on a given machine, redo those three steps; the `claude plugin` route works
+too where the CLI is on PATH.
 
 ---
 
