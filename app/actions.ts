@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import type { BulkActionState } from "@/app/assignment-bulk-state";
 import { createClient } from "@/lib/supabase/server";
 
 const assignmentIdsSchema = z
@@ -24,18 +25,6 @@ const bulkActionSchema = z.discriminatedUnion("operation", [
     }),
   }),
 ]);
-
-export type BulkActionState = {
-  status: "idle" | "success" | "error";
-  message: string;
-  submissionId: number;
-};
-
-export const initialBulkActionState: BulkActionState = {
-  status: "idle",
-  message: "",
-  submissionId: 0,
-};
 
 export async function updateAssignmentsBulk(
   _previousState: BulkActionState,

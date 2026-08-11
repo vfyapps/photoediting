@@ -19,6 +19,7 @@ export const priorities = [
 export type AssignmentStatus = (typeof assignmentStatuses)[number];
 export type Priority = (typeof priorities)[number];
 export type ViewMode = "board" | "table";
+export type GroupMode = "status" | "editor";
 
 export type AssignmentFilters = {
   status: AssignmentStatus | "";
@@ -28,6 +29,9 @@ export type AssignmentFilters = {
   goal: string;
   search: string;
   showBacklog: boolean;
+  showArchive: boolean;
+  mine: boolean;
+  qcOverdue: boolean;
 };
 
 export type AssignmentListItem = {

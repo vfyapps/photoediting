@@ -15,15 +15,17 @@ import {
   List,
   Search,
   SlidersHorizontal,
+  UserRound,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import {
-  initialBulkActionState,
-  updateAssignmentsBulk,
-} from "@/app/actions";
+import { initialBulkActionState } from "@/app/assignment-bulk-state";
+import { updateAssignmentsBulk } from "@/app/actions";
 import {
   AssignmentCard,
   createGoalLabels,
+  PriorityBadge,
+  StatusBadge,
 } from "@/components/assignments/assignment-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ import {
   type AssignmentListItem,
   type EditorOption,
   type GoalOption,
+  type GroupMode,
   priorities,
   priorityLabels,
   type RentalExpertOption,
@@ -48,13 +51,24 @@ type AssignmentsScreenProps = {
   goals: GoalOption[];
   filters: AssignmentFilters;
   view: ViewMode;
+  group: GroupMode;
   canBulkManage: boolean;
+  currentEditorName: string | null;
   qcReminderDays: number;
   today: string;
 };
 
+type AssignmentGroup = {
+  key: string;
+  label: string;
+  assignments: AssignmentListItem[];
+};
+
 const inputClassName =
-  "h-10 rounded-lg border border-input bg-background px-3 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring/30";
+  "h-9 rounded-md border border-input bg-background px-2.5 text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/25";
+
+const openStatuses = new Set(["new", "in_process", "qc", "denied"]);
+const archiveStatuses = new Set(["approved", "ai_rejected"]);
 
 function daysBetween(start: string, end: string) {
   const startDate = new Date(`${start.slice(0, 10)}T00:00:00Z`);
@@ -66,9 +80,10 @@ function daysBetween(start: string, end: string) {
 }
 
 function getDaysOpen(assignment: AssignmentListItem, today: string) {
-  const start = assignment.requestDate ?? assignment.createdAt;
-  const end = assignment.completedDate ?? today;
-  return daysBetween(start, end);
+  return daysBetween(
+    assignment.requestDate ?? assignment.createdAt,
+    assignment.completedDate ?? today,
+  );
 }
 
 export function AssignmentsScreen({
@@ -79,7 +94,9 @@ export function AssignmentsScreen({
   goals,
   filters,
   view,
+  group,
   canBulkManage,
+  currentEditorName,
   qcReminderDays,
   today,
 }: AssignmentsScreenProps) {
@@ -135,8 +152,6 @@ export function AssignmentsScreen({
     });
   };
 
-  const allSelected =
-    assignments.length > 0 && selectedIds.size === assignments.length;
   const activeFilterCount = [
     filters.status,
     filters.editor,
@@ -144,98 +159,118 @@ export function AssignmentsScreen({
     filters.priority,
     filters.goal,
     filters.search,
+    filters.mine,
+    filters.qcOverdue,
   ].filter(Boolean).length;
+  const groups = groupAssignments(assignments, group, filters);
 
-  const statusColumns = assignmentStatuses.filter(
-    (status) => filters.showBacklog || status !== "backlog",
-  );
-
-  const renderCard = (assignment: AssignmentListItem) => {
-    const daysOpen = getDaysOpen(assignment, today);
-    return (
-      <AssignmentCard
-        assignment={assignment}
-        daysOpen={daysOpen}
-        goalLabels={goalLabels}
-        key={assignment.id}
-        needsQcAttention={
-          assignment.status === "qc" && daysOpen > qcReminderDays
-        }
-        onSelect={toggleSelection}
-        selectable={canBulkManage}
-        selected={selectedIds.has(assignment.id)}
-      />
-    );
-  };
+  const clearFilters = () =>
+    replaceParams({
+      status: null,
+      editor: null,
+      expert: null,
+      priority: null,
+      goal: null,
+      q: null,
+      mine: null,
+      qc_overdue: null,
+    });
 
   return (
-    <main className="min-h-screen bg-slate-50/70">
-      <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">
-              Villa for You · Fotobewerking
+            <p className="text-xs font-medium text-muted-foreground">
+              VfY Fotobewerking
             </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">Opdrachten</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {assignments.length} {assignments.length === 1 ? "opdracht" : "opdrachten"}
-              {filters.showBacklog ? " inclusief backlog" : " zonder backlog"}
-            </p>
+            <div className="mt-1 flex items-baseline gap-3">
+              <h1 className="text-xl font-semibold tracking-tight">Opdrachten</h1>
+              <span className="text-sm text-muted-foreground">
+                {assignments.length} {assignments.length === 1 ? "opdracht" : "opdrachten"}
+              </span>
+            </div>
           </div>
-          <div className="inline-flex w-fit rounded-xl border bg-background p-1 shadow-sm">
-            <Button
-              aria-pressed={view === "board"}
-              onClick={() => replaceParams({ view: "board" })}
-              size="sm"
-              variant={view === "board" ? "default" : "ghost"}
-            >
-              <Columns3 className="size-4" /> Bord
-            </Button>
-            <Button
-              aria-pressed={view === "table"}
-              onClick={() => replaceParams({ view: "table" })}
-              size="sm"
-              variant={view === "table" ? "default" : "ghost"}
-            >
-              <List className="size-4" /> Tabel
-            </Button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedControl
+              label="Weergave"
+              onChange={(nextView) => replaceParams({ view: nextView })}
+              options={[
+                { icon: Columns3, label: "Bord", value: "board" },
+                { icon: List, label: "Tabel", value: "table" },
+              ]}
+              value={view}
+            />
+            <SegmentedControl
+              label="Groeperen"
+              onChange={(nextGroup) => replaceParams({ group: nextGroup })}
+              options={[
+                { icon: Columns3, label: "Status", value: "status" },
+                { icon: UserRound, label: "Editor", value: "editor" },
+              ]}
+              value={group}
+            />
           </div>
         </header>
 
-        <section className="mt-6 rounded-2xl border bg-background p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm font-semibold">
+        <section className="border-b py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <QuickFilter
+              active={filters.mine}
+              disabled={!currentEditorName}
+              label="Mijn opdrachten"
+              onClick={() =>
+                replaceParams({
+                  mine: filters.mine ? null : "1",
+                  editor: filters.mine ? undefined : null,
+                })
+              }
+            />
+            <QuickFilter
+              active={filters.priority === "high"}
+              label="Hoge prioriteit"
+              onClick={() =>
+                replaceParams({ priority: filters.priority === "high" ? null : "high" })
+              }
+            />
+            <QuickFilter
+              active={filters.qcOverdue}
+              label={`Langer dan ${qcReminderDays} dagen in QC`}
+              onClick={() =>
+                replaceParams({
+                  qc_overdue: filters.qcOverdue ? null : "1",
+                  status: filters.qcOverdue ? null : "qc",
+                })
+              }
+            />
+            {!currentEditorName ? (
+              <span className="text-xs text-muted-foreground">
+                Mijn opdrachten is beschikbaar zodra je aan een editorprofiel bent gekoppeld.
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="border-b py-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
               <SlidersHorizontal className="size-4" /> Filters
-              {activeFilterCount > 0 ? (
-                <Badge variant="secondary">{activeFilterCount}</Badge>
-              ) : null}
+              {activeFilterCount > 0 ? <Badge variant="secondary">{activeFilterCount}</Badge> : null}
             </div>
             {activeFilterCount > 0 ? (
-              <Button
-                onClick={() =>
-                  replaceParams({
-                    status: null,
-                    editor: null,
-                    expert: null,
-                    priority: null,
-                    goal: null,
-                    q: null,
-                  })
-                }
-                size="sm"
-                variant="ghost"
-              >
+              <Button onClick={clearFilters} size="sm" variant="ghost">
                 <FilterX className="size-4" /> Wissen
               </Button>
             ) : null}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
-            <label className="relative md:col-span-2 xl:col-span-2">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_repeat(5,minmax(130px,1fr))]">
+            <label className="relative">
               <span className="sr-only">Zoeken op acco ID</span>
-              <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
               <input
-                className={cn(inputClassName, "w-full pl-9")}
+                className={cn(inputClassName, "w-full pl-8")}
                 onChange={(event) => setSearchDraft(event.target.value)}
                 placeholder="Zoek op acco ID"
                 type="search"
@@ -248,30 +283,23 @@ export function AssignmentsScreen({
                 replaceParams({
                   status: value || null,
                   backlog: value === "backlog" ? "1" : undefined,
+                  archive:
+                    value === "approved" || value === "ai_rejected" ? "1" : undefined,
                 })
               }
-              options={assignmentStatuses.map((status) => ({
-                label: status,
-                value: status,
-              }))}
+              options={assignmentStatuses.map((status) => ({ label: status, value: status }))}
               value={filters.status}
             />
             <FilterSelect
               label="Editor"
-              onChange={(value) => replaceParams({ editor: value || null })}
-              options={editors.map((editor) => ({
-                label: editor.name,
-                value: editor.name,
-              }))}
+              onChange={(value) => replaceParams({ editor: value || null, mine: null })}
+              options={editors.map((editor) => ({ label: editor.name, value: editor.name }))}
               value={filters.editor}
             />
             <FilterSelect
               label="Verhuurexpert"
               onChange={(value) => replaceParams({ expert: value || null })}
-              options={rentalExperts.map((expert) => ({
-                label: expert.name,
-                value: expert.name,
-              }))}
+              options={rentalExperts.map((expert) => ({ label: expert.name, value: expert.name }))}
               value={filters.expert}
             />
             <FilterSelect
@@ -286,248 +314,138 @@ export function AssignmentsScreen({
             <FilterSelect
               label="Editing goal"
               onChange={(value) => replaceParams({ goal: value || null })}
-              options={goals.map((goal) => ({
-                label: goal.label_nl,
-                value: goal.code,
-              }))}
+              options={goals.map((goal) => ({ label: goal.label_nl, value: goal.code }))}
               value={filters.goal}
             />
           </div>
 
-          <label className="mt-4 flex w-fit cursor-pointer items-center gap-2 text-sm font-medium">
-            <input
+          <div className="mt-3 flex flex-wrap gap-4 text-sm">
+            <Toggle
+              checked={filters.showArchive}
+              label="Archief tonen"
+              onChange={(checked) => replaceParams({ archive: checked ? "1" : null })}
+            />
+            <Toggle
               checked={filters.showBacklog}
-              className="size-4 rounded border-input accent-foreground"
-              onChange={(event) =>
+              label="Backlog tonen"
+              onChange={(checked) =>
                 replaceParams({
-                  backlog: event.target.checked ? "1" : null,
-                  status:
-                    !event.target.checked && filters.status === "backlog"
-                      ? null
-                      : undefined,
+                  backlog: checked ? "1" : null,
+                  status: !checked && filters.status === "backlog" ? null : undefined,
                 })
               }
-              type="checkbox"
             />
-            Backlog tonen
-          </label>
+          </div>
         </section>
 
         <div
           className={cn(
-            "mt-6 transition-opacity",
+            "pt-4 transition-opacity",
             isNavigating && "pointer-events-none opacity-60",
           )}
         >
           {assignments.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-background px-6 py-16 text-center">
-              <h2 className="font-semibold">Geen opdrachten gevonden</h2>
+            <div className="border border-dashed px-6 py-14 text-center">
+              <h2 className="font-medium">Geen opdrachten gevonden</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pas de filters aan of toon ook de backlog.
+                Pas de filters aan of toon ook het archief of de backlog.
               </p>
             </div>
           ) : view === "board" ? (
-            <div className="overflow-x-auto pb-4">
-              <div className="flex min-w-max items-start gap-4">
-                {statusColumns.map((status) => {
-                  const columnAssignments = assignments.filter(
-                    (assignment) => assignment.status === status,
-                  );
-                  return (
-                    <section className="w-[310px]" key={status}>
-                      <div className="mb-3 flex items-center justify-between px-1">
-                        <h2 className="text-sm font-bold">{status}</h2>
-                        <Badge variant="secondary">{columnAssignments.length}</Badge>
-                      </div>
-                      <div className="grid gap-3">
-                        {columnAssignments.length > 0 ? (
-                          columnAssignments.map(renderCard)
-                        ) : (
-                          <div className="rounded-xl border border-dashed bg-background/60 px-4 py-8 text-center text-xs text-muted-foreground">
-                            Geen opdrachten
-                          </div>
-                        )}
-                      </div>
-                    </section>
-                  );
-                })}
+            <div className="overflow-x-auto pb-3">
+              <div className="flex min-w-max items-start gap-3">
+                {groups.map((assignmentGroup) => (
+                  <section className="w-[330px] border bg-background" key={assignmentGroup.key}>
+                    <GroupHeader assignmentGroup={assignmentGroup} group={group} />
+                    <div>
+                      {assignmentGroup.assignments.length > 0 ? (
+                        assignmentGroup.assignments.map((assignment) => (
+                          <AssignmentCard
+                            assignment={assignment}
+                            daysOpen={getDaysOpen(assignment, today)}
+                            goalLabels={goalLabels}
+                            key={assignment.id}
+                            needsQcAttention={
+                              assignment.status === "qc" &&
+                              getDaysOpen(assignment, today) > qcReminderDays
+                            }
+                            onSelect={toggleSelection}
+                            selectable={canBulkManage}
+                            selected={selectedIds.has(assignment.id)}
+                          />
+                        ))
+                      ) : (
+                        <p className="px-3 py-8 text-center text-xs text-muted-foreground">
+                          Geen opdrachten
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                ))}
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border bg-background shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1050px] border-collapse text-sm">
-                  <thead className="bg-slate-100/80 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      {canBulkManage ? (
-                        <th className="w-12 px-4 py-3">
-                          <input
-                            aria-label="Selecteer alle zichtbare opdrachten"
-                            checked={allSelected}
-                            className="size-4 accent-foreground"
-                            onChange={(event) =>
-                              setSelectedIds(
-                                event.target.checked
-                                  ? new Set(assignments.map(({ id }) => id))
-                                  : new Set(),
-                              )
-                            }
-                            type="checkbox"
-                          />
-                        </th>
-                      ) : null}
-                      <th className="px-4 py-3">Acco ID</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Verhuurexpert</th>
-                      <th className="px-4 py-3">Foto&apos;s</th>
-                      <th className="px-4 py-3">Editing goals</th>
-                      <th className="px-4 py-3">Prioriteit</th>
-                      <th className="px-4 py-3">Editor</th>
-                      <th className="px-4 py-3 text-right">Dagen open</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {assignments.map((assignment) => {
-                      const daysOpen = getDaysOpen(assignment, today);
-                      const needsQcAttention =
-                        assignment.status === "qc" && daysOpen > qcReminderDays;
-                      return (
-                        <tr
-                          className={cn(
-                            "transition-colors hover:bg-slate-50",
-                            selectedIds.has(assignment.id) && "bg-slate-50",
-                            needsQcAttention && "bg-amber-50 hover:bg-amber-100/70",
-                          )}
-                          key={assignment.id}
-                        >
-                          {canBulkManage ? (
-                            <td className="px-4 py-3">
-                              <input
-                                aria-label={`Selecteer opdracht ${assignment.accoId}`}
-                                checked={selectedIds.has(assignment.id)}
-                                className="size-4 accent-foreground"
-                                onChange={(event) =>
-                                  toggleSelection(
-                                    assignment.id,
-                                    event.target.checked,
-                                  )
-                                }
-                                type="checkbox"
-                              />
-                            </td>
-                          ) : null}
-                          <td className="px-4 py-3 font-bold">{assignment.accoId}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">{assignment.status}</Badge>
-                              {needsQcAttention ? (
-                                <span
-                                  aria-label="QC wacht langer dan ingesteld"
-                                  className="size-2 rounded-full bg-amber-500"
-                                  title="QC wacht langer dan ingesteld"
-                                />
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {assignment.rentalExpertName ?? "Onbekend"}
-                          </td>
-                          <td className="px-4 py-3">{assignment.photoCount}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex max-w-[260px] flex-wrap gap-1">
-                              {assignment.goals.map((goal) => (
-                                <Badge key={goal} variant="secondary">
-                                  {goalLabels.get(goal) ?? goal}
-                                </Badge>
-                              ))}
-                              {assignment.goals.length === 0 ? "—" : null}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {priorityLabels[assignment.priority]}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {assignment.editorName ?? "Niet toegewezen"}
-                          </td>
-                          <td className="px-4 py-3 text-right tabular-nums">
-                            {daysOpen} d
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <CompactTable
+              assignments={assignments}
+              canBulkManage={canBulkManage}
+              goalLabels={goalLabels}
+              groups={groups}
+              group={group}
+              qcReminderDays={qcReminderDays}
+              selectedIds={selectedIds}
+              setSelectedIds={setSelectedIds}
+              today={today}
+              toggleSelection={toggleSelection}
+            />
           )}
         </div>
 
         {canBulkManage && selectedIds.size > 0 ? (
           <form
             action={bulkAction}
-            className="sticky bottom-4 z-20 mx-auto mt-6 flex max-w-5xl flex-col gap-3 rounded-2xl border bg-background/95 p-4 shadow-xl backdrop-blur sm:flex-row sm:items-end"
+            className="sticky bottom-3 z-20 mt-4 flex flex-col gap-2 border bg-background p-3 sm:flex-row sm:items-end"
           >
             {[...selectedIds].map((id) => (
               <input key={id} name="assignmentId" type="hidden" value={id} />
             ))}
-            <div className="min-w-32 self-center text-sm font-semibold">
-              {selectedIds.size} geselecteerd
-            </div>
+            <div className="min-w-28 text-sm font-medium">{selectedIds.size} geselecteerd</div>
             <label className="grid flex-1 gap-1 text-xs font-medium text-muted-foreground">
               Toewijzen aan editor
               <select className={inputClassName} defaultValue="" name="editorId">
-                <option disabled value="">
-                  Kies editor
-                </option>
+                <option disabled value="">Kies editor</option>
                 {assignableEditors.map((editor) => (
-                  <option key={editor.id} value={editor.id}>
-                    {editor.name}
-                  </option>
+                  <option key={editor.id} value={editor.id}>{editor.name}</option>
                 ))}
               </select>
             </label>
-            <Button
-              disabled={isBulkPending}
-              name="operation"
-              type="submit"
-              value="assign"
-            >
+            <Button disabled={isBulkPending} name="operation" type="submit" value="assign">
               Toewijzen
             </Button>
             <label className="grid flex-1 gap-1 text-xs font-medium text-muted-foreground">
               Prioriteit wijzigen
               <select className={inputClassName} defaultValue="" name="priority">
-                <option disabled value="">
-                  Kies prioriteit
-                </option>
+                <option disabled value="">Kies prioriteit</option>
                 {priorities.map((priority) => (
-                  <option key={priority} value={priority}>
-                    {priorityLabels[priority]}
-                  </option>
+                  <option key={priority} value={priority}>{priorityLabels[priority]}</option>
                 ))}
               </select>
             </label>
-            <Button
-              disabled={isBulkPending}
-              name="operation"
-              type="submit"
-              value="priority"
-            >
+            <Button disabled={isBulkPending} name="operation" type="submit" value="priority">
               Wijzigen
             </Button>
-            <Button onClick={() => setSelectedIds(new Set())} variant="ghost">
-              Annuleren
-            </Button>
-            <p
-              aria-live="polite"
-              className={cn(
-                "text-xs sm:absolute sm:bottom-full sm:left-4 sm:mb-2 sm:rounded-lg sm:px-3 sm:py-2 sm:shadow",
-                bulkState.status === "error" && "bg-red-50 text-red-700",
-                bulkState.status === "success" && "bg-emerald-50 text-emerald-700",
-              )}
-            >
-              {bulkState.message}
-            </p>
+            <Button onClick={() => setSelectedIds(new Set())} variant="ghost">Annuleren</Button>
+            {bulkState.message ? (
+              <p
+                aria-live="polite"
+                className={cn(
+                  "text-xs",
+                  bulkState.status === "error" && "text-red-700",
+                  bulkState.status === "success" && "text-emerald-700",
+                )}
+              >
+                {bulkState.message}
+              </p>
+            ) : null}
           </form>
         ) : null}
       </div>
@@ -535,14 +453,296 @@ export function AssignmentsScreen({
   );
 }
 
-type FilterSelectProps = {
+function groupAssignments(
+  assignments: AssignmentListItem[],
+  group: GroupMode,
+  filters: AssignmentFilters,
+): AssignmentGroup[] {
+  if (group === "editor") {
+    const grouped = new Map<string, AssignmentListItem[]>();
+    assignments.forEach((assignment) => {
+      const label = assignment.editorName ?? "Niet toegewezen";
+      grouped.set(label, [...(grouped.get(label) ?? []), assignment]);
+    });
+    return [...grouped.entries()]
+      .sort(([left], [right]) => left.localeCompare(right, "nl"))
+      .map(([label, groupedAssignments]) => ({
+        key: `editor-${label}`,
+        label,
+        assignments: groupedAssignments,
+      }));
+  }
+
+  const availableStatuses = assignmentStatuses.filter((status) => {
+    if (filters.status) return status === filters.status;
+    if (status === "backlog") return filters.showBacklog;
+    if (archiveStatuses.has(status)) return filters.showArchive;
+    return openStatuses.has(status);
+  });
+  return availableStatuses.map((status) => ({
+    key: status,
+    label: status,
+    assignments: assignments.filter((assignment) => assignment.status === status),
+  }));
+}
+
+function GroupHeader({
+  assignmentGroup,
+  group,
+}: {
+  assignmentGroup: AssignmentGroup;
+  group: GroupMode;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
+      <div className="flex items-center gap-2">
+        {group === "status" ? (
+          <StatusBadge status={assignmentGroup.label as AssignmentListItem["status"]} />
+        ) : (
+          <span className="text-sm font-medium">{assignmentGroup.label}</span>
+        )}
+      </div>
+      <Badge variant="secondary">{assignmentGroup.assignments.length}</Badge>
+    </div>
+  );
+}
+
+function CompactTable({
+  assignments,
+  groups,
+  group,
+  goalLabels,
+  canBulkManage,
+  selectedIds,
+  setSelectedIds,
+  toggleSelection,
+  qcReminderDays,
+  today,
+}: {
+  assignments: AssignmentListItem[];
+  groups: AssignmentGroup[];
+  group: GroupMode;
+  goalLabels: Map<string, string>;
+  canBulkManage: boolean;
+  selectedIds: Set<string>;
+  setSelectedIds: (ids: Set<string>) => void;
+  toggleSelection: (id: string, checked: boolean) => void;
+  qcReminderDays: number;
+  today: string;
+}) {
+  const allSelected = assignments.length > 0 && selectedIds.size === assignments.length;
+
+  return (
+    <div className="overflow-x-auto border">
+      <table className="w-full min-w-[780px] border-collapse text-sm">
+        <thead className="border-b bg-muted/30 text-left text-xs font-medium text-muted-foreground">
+          <tr>
+            {canBulkManage ? (
+              <th className="w-10 px-3 py-2">
+                <input
+                  aria-label="Selecteer alle zichtbare opdrachten"
+                  checked={allSelected}
+                  className="size-3.5 accent-[#1D9E75]"
+                  onChange={(event) =>
+                    setSelectedIds(
+                      event.target.checked
+                        ? new Set(assignments.map(({ id }) => id))
+                        : new Set(),
+                    )
+                  }
+                  type="checkbox"
+                />
+              </th>
+            ) : null}
+            <th className="px-3 py-2">Opdracht</th>
+            <th className="w-44 px-3 py-2">Workflow</th>
+            <th className="w-40 px-3 py-2">Editor</th>
+            <th className="w-20 px-3 py-2 text-right">Open</th>
+          </tr>
+        </thead>
+        {groups.map((assignmentGroup) => (
+          <tbody key={assignmentGroup.key}>
+            <tr className="border-y bg-muted/20">
+              <th className="px-3 py-1.5 text-left text-xs font-medium" colSpan={canBulkManage ? 5 : 4}>
+                <span className="flex items-center gap-2">
+                  {group === "status" ? (
+                    <StatusBadge status={assignmentGroup.label as AssignmentListItem["status"]} />
+                  ) : (
+                    assignmentGroup.label
+                  )}
+                  <span className="text-muted-foreground">{assignmentGroup.assignments.length}</span>
+                </span>
+              </th>
+            </tr>
+            {assignmentGroup.assignments.map((assignment) => {
+              const days = getDaysOpen(assignment, today);
+              const needsQcAttention = assignment.status === "qc" && days > qcReminderDays;
+              return (
+                <tr
+                  className={cn(
+                    "border-b last:border-b-0 hover:bg-muted/30",
+                    selectedIds.has(assignment.id) && "bg-teal-50/70",
+                    needsQcAttention && "bg-amber-50/70 hover:bg-amber-50",
+                  )}
+                  key={assignment.id}
+                >
+                  {canBulkManage ? (
+                    <td className="px-3 py-2.5">
+                      <input
+                        aria-label={`Selecteer opdracht ${assignment.accoId}`}
+                        checked={selectedIds.has(assignment.id)}
+                        className="size-3.5 accent-[#1D9E75]"
+                        onChange={(event) => toggleSelection(assignment.id, event.target.checked)}
+                        type="checkbox"
+                      />
+                    </td>
+                  ) : null}
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{assignment.accoId}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {assignment.rentalExpertName ?? "Onbekend"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {assignment.photoCount} {assignment.photoCount === 1 ? "foto" : "foto's"}
+                      {assignment.goals.length > 0
+                        ? ` · ${assignment.goals
+                            .map((goal) => goalLabels.get(goal) ?? goal)
+                            .join(", ")}`
+                        : ""}
+                    </p>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={assignment.status} />
+                      <PriorityBadge priority={assignment.priority} />
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <EditorIdentity name={assignment.editorName ?? "Niet toegewezen"} />
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-xs tabular-nums text-muted-foreground">
+                    {needsQcAttention ? <span className="mr-1 text-amber-700">!</span> : null}
+                    {days}d
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        ))}
+      </table>
+    </div>
+  );
+}
+
+function EditorIdentity({ name }: { name: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="grid size-5 place-items-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-700">
+        {name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}
+      </span>
+      <span className="truncate text-xs text-muted-foreground">{name}</span>
+    </div>
+  );
+}
+
+function SegmentedControl<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { label: string; value: T; icon: LucideIcon }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div aria-label={label} className="inline-flex border p-0.5" role="group">
+      {options.map(({ icon: Icon, label: optionLabel, value: optionValue }) => (
+        <button
+          aria-pressed={value === optionValue}
+          className={cn(
+            "inline-flex h-7 items-center gap-1 px-2 text-xs font-medium",
+            value === optionValue
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+          key={optionValue}
+          onClick={() => onChange(optionValue)}
+          type="button"
+        >
+          <Icon className="size-3.5" /> {optionLabel}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function QuickFilter({
+  active,
+  disabled = false,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-pressed={active}
+      className={cn(
+        "h-8 border px-2.5 text-xs font-medium transition-colors",
+        active
+          ? "border-primary bg-teal-50 text-primary"
+          : "bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",
+        disabled && "cursor-not-allowed opacity-50",
+      )}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
+function Toggle({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
+      <input
+        checked={checked}
+        className="size-3.5 accent-[#1D9E75]"
+        onChange={(event) => onChange(event.target.checked)}
+        type="checkbox"
+      />
+      {label}
+    </label>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
   label: string;
   value: string;
   options: { label: string; value: string }[];
   onChange: (value: string) => void;
-};
-
-function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
+}) {
   return (
     <label className="grid gap-1 text-xs font-medium text-muted-foreground">
       <span className="sr-only">{label}</span>
@@ -554,9 +754,7 @@ function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
       >
         <option value="">{label}: alle</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
+          <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
     </label>
