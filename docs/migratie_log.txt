@@ -1,0 +1,49 @@
+Migratielog VfY_FotoBewerking_Tracker.xlsx
+Gedraaid op 2026-07-27T15:57:30
+Bron: /mnt/user-data/uploads/VfY_FotoBewerking_Tracker.xlsx
+
+Aannames:
+  1. Rijen zonder status zijn kandidaatwoningen en krijgen status 'backlog'.
+  2. Kolom 'Notes QC' bevat zowel briefing vooraf als QC-feedback achteraf.
+     De inhoud gaat daarom onbewerkt naar assignments.legacy_notes.
+  3. Dezelfde acco_id mag meerdere keren voorkomen: dat zijn losse opdrachten.
+  4. De kolom 'Count' wordt niet overgenomen, die volgt uit edit_items.
+
+rij 9 (AT.8953.10): Count in Excel was 1, hier 2 unieke foto's. De nieuwe telling is leidend.
+rij 10 (AT.8953.47): Count in Excel was 1, hier 3 unieke foto's. De nieuwe telling is leidend.
+rij 13 (AT.5531.03): Count in Excel was 13, hier 8 unieke foto's. De nieuwe telling is leidend.
+rij 32 (NL.5094.02): Count in Excel was 17, hier 11 unieke foto's. De nieuwe telling is leidend.
+rij 34 (FR.34210.34): Count in Excel was 32, hier 16 unieke foto's. De nieuwe telling is leidend.
+rij 35 (AT.6341.01): Count in Excel was 3, hier 2 unieke foto's. De nieuwe telling is leidend.
+rij 75 (AT.6364.90): Count in Excel was 44, hier 21 unieke foto's. De nieuwe telling is leidend.
+rij 78 (NL.4265.02): Count in Excel was 18, hier 14 unieke foto's. De nieuwe telling is leidend.
+rij 81 (FR.11700.02): Count in Excel was 8, hier 4 unieke foto's. De nieuwe telling is leidend.
+rij 82 (BE.6940.14): Count in Excel was 24, hier 12 unieke foto's. De nieuwe telling is leidend.
+rij 85 (FR.34210.03): Count in Excel was 8, hier 7 unieke foto's. De nieuwe telling is leidend.
+rij 89 (AT.6365.14): Count in Excel was 6, hier 3 unieke foto's. De nieuwe telling is leidend.
+rij 90 (AT.8862.07): Count in Excel was 40, hier 20 unieke foto's. De nieuwe telling is leidend.
+rij 94 (NL.7671.02): Count in Excel was 8, hier 4 unieke foto's. De nieuwe telling is leidend.
+rij 96 (AT.6365.20): Count in Excel was 6, hier 3 unieke foto's. De nieuwe telling is leidend.
+LET OP  rij 103 (AT.5453.04) / replace_sky: cel 13.1 is door Excel als kommagetal gelezen, geinterpreteerd als foto's [13, 1]. Controleer dit handmatig.
+rij 103 (AT.5453.04): Count in Excel was 4, hier 3 unieke foto's. De nieuwe telling is leidend.
+rij 104 (AT.5542.01): Count in Excel was 4, hier 3 unieke foto's. De nieuwe telling is leidend.
+LET OP  rij 105 (AT.5570.22) / replace_sky: cel 29.38 is door Excel als kommagetal gelezen, geinterpreteerd als foto's [29, 38]. Controleer dit handmatig.
+rij 105 (AT.5570.22): Count in Excel was 7, hier 5 unieke foto's. De nieuwe telling is leidend.
+LET OP  rij 121 (AT.5570.31) / replace_sky: cel 57.49 is door Excel als kommagetal gelezen, geinterpreteerd als foto's [57, 49]. Controleer dit handmatig.
+rij 121 (AT.5570.31): Count in Excel was 6, hier 4 unieke foto's. De nieuwe telling is leidend.
+rij 126 (AT.6300.15): Count in Excel was 6, hier 3 unieke foto's. De nieuwe telling is leidend.
+LET OP  rij 140 (AT.5453.03) / improve_lighting: cel 46.51 is door Excel als kommagetal gelezen, geinterpreteerd als foto's [46, 51]. Controleer dit handmatig.
+LET OP  rij 140 (AT.5453.03) / replace_sky: cel 2.49 is door Excel als kommagetal gelezen, geinterpreteerd als foto's [2, 49]. Controleer dit handmatig.
+rij 140 (AT.5453.03): Count in Excel was 5, hier 4 unieke foto's. De nieuwe telling is leidend.
+rij 141 (AT.5505.04): Count in Excel was 3, hier 2 unieke foto's. De nieuwe telling is leidend.
+rij 201 (AT.5754.09): Count in Excel was 7, hier 6 unieke foto's. De nieuwe telling is leidend.
+
+Resultaat:
+  opdrachten:        352
+  waarvan backlog:   153
+  foto-goal regels:  947
+  unieke foto's:     845
+  verhuurexperts:    19
+  editors:           5
+  statusverdeling:   ai_rejected=1, approved=126, backlog=153, denied=1, in_process=1, new=66, qc=4
+  waarschuwingen:    5
