@@ -30,6 +30,25 @@ From `vfy-context.md`, applicable here: the acco-id convention (§3) and the wri
 conventions (§6). **Not** applicable: the je/u form rule in §5, since this is an internal
 work tool with no guest or homeowner contact.
 
+## Skills this project expects
+
+| Skill | Use it for | Where it comes from |
+|---|---|---|
+| `vfy-app-design` | every screen. Binding, see Design direction | `../../AI MDs/skills/` |
+| `supabase-postgres-best-practices` | every change to `db/`: RLS policies, indexes, query shape. Not optional on the RLS work — there are 20+ policies and a wrong one fails silently | plugin, see below |
+| `dataviz` | the dashboard charts. `vfy-app-design` covers tokens and components, not axes, legends or colour within a chart | bundled with Claude |
+
+The Supabase skills are installed as a plugin rather than copied into the context repo,
+because they are externally maintained and a copy ages silently. If they are missing:
+
+```
+claude plugin marketplace add supabase/agent-skills
+claude plugin install supabase@supabase-agent-skills
+```
+
+Installing a plugin mid-session does not take effect in that session. Install first, then
+start the session.
+
 ---
 
 ## Stack
