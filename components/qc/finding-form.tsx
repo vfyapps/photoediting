@@ -72,7 +72,7 @@ export function FindingForm({
               </span>
               <button
                 aria-label="Bevinding verwijderen"
-                className="shrink-0 text-muted-foreground hover:text-destructive"
+                className="shrink-0 text-muted-foreground hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
                 onClick={() => removeFinding(index)}
                 type="button"
               >

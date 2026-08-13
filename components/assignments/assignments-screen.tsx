@@ -508,7 +508,7 @@ function SegmentedControl<T extends string>({
         <button
           aria-pressed={value === optionValue}
           className={cn(
-            "inline-flex h-7 items-center gap-1 px-2 text-xs font-medium",
+            "inline-flex h-7 items-center gap-1 px-2 text-xs font-medium focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
             value === optionValue
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -539,7 +539,7 @@ function QuickFilter({
     <button
       aria-pressed={active}
       className={cn(
-        "h-8 border px-2.5 text-xs font-medium transition-colors",
+        "h-8 border px-2.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
         active
           ? "border-primary bg-accent text-primary"
           : "bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",

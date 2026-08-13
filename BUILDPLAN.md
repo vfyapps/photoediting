@@ -264,4 +264,4 @@ module; verificatieronde gedraaid.
 | 3 | QC-scherm + e2e-doorloop groen | ⚠️ gebouwd, e2e nog niet live geverifieerd (geen Docker in deze sandbox) |
 | 4 | Dashboard + RLS-test groen | ⚠️ dashboard gebouwd, RLS-test nog niet live geverifieerd (geen Docker in deze sandbox) |
 | 5 | Academy | ✅ |
-| 6 | Polijstronde, README, AGENTS.md-changelog | ⬜ |
+| 6 | Polijstronde, README, AGENTS.md-changelog | ⚠️ gebouwd/gedocumenteerd, e2e + RLS-test nog niet live geverifieerd (geen Docker in deze sandbox) |

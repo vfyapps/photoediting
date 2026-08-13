@@ -179,7 +179,7 @@ function ToggleTab({
   return (
     <button
       aria-selected={active}
-      className={`rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
+      className={`rounded-sm px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${
         active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
       }`}
       onClick={onClick}

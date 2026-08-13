@@ -317,3 +317,19 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Vangnet naast de losse motion-reduce:-klassen op de zwaardere animaties
+ * (voortgangsbalk, skeleton): elke overige transition/animation (hover-
+ * schaduw, chevron-rotatie, dialog/menu open-animatie uit tw-animate-css)
+ * valt hier automatisch onder, in plaats van dat elk component het los
+ * moet annoteren (BUILDPLAN.md §3.5).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

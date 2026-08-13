@@ -166,7 +166,7 @@ function MethodButton({
     <button
       aria-pressed={active}
       className={cn(
-        "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+        "rounded-lg px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",

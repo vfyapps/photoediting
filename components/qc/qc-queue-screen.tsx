@@ -89,7 +89,7 @@ export function QcQueueScreen({
               <button
                 aria-current={i === index}
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-2 text-left text-sm transition-colors",
+                  "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
                   i === index ? "bg-accent text-accent-foreground" : "hover:bg-muted/50",
                 )}
                 onClick={() => setIndex(i)}

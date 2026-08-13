@@ -38,6 +38,22 @@ rij 140 (AT.5453.03): Count in Excel was 5, hier 4 unieke foto's. De nieuwe tell
 rij 141 (AT.5505.04): Count in Excel was 3, hier 2 unieke foto's. De nieuwe telling is leidend.
 rij 201 (AT.5754.09): Count in Excel was 7, hier 6 unieke foto's. De nieuwe telling is leidend.
 
+Resolutie waarschuwingen (WP6, 2026-08-13):
+  Alle 5 staan nog exact zo in de database als hierboven geïnterpreteerd
+  (geverifieerd via een live query op edit_items/assignments). Bewust niet
+  gewijzigd: de enige manier om vast te stellen of "13.1" één foto (bijv. 131,
+  of een foto die niet bestaat) of twee foto's (13 en 1) betekende, is de
+  bewuste woning met de echte foto's erbij te bekijken — dat is een
+  inhoudelijke controle door een coördinator, geen technische. Doorgeschoven
+  naar de coördinator, per opdracht direct te openen via het opdrachtdetail:
+    - AT.5453.04 / replace_sky   → huidige foto's: 1, 13
+    - AT.5570.22 / replace_sky   → huidige foto's: 29, 38
+    - AT.5570.31 / replace_sky   → huidige foto's: 49, 57
+    - AT.5453.03 / improve_lighting → huidige foto's: 46, 51
+    - AT.5453.03 / replace_sky   → huidige foto's: 2, 49
+  Correctie (indien nodig) via de bestaande UI: een fotonummer verwijderen of
+  toevoegen op het opdrachtdetailscherm, geen directe database-bewerking nodig.
+
 Resultaat:
   opdrachten:        352
   waarvan backlog:   153
