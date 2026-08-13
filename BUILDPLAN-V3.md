@@ -31,18 +31,18 @@ Niet aangenomen maar gemeten, op de echte xlsx en de live database:
 | Rijen in `Data_Fototool` | 865 (van 3000 regels blad) | Import moet lege staartrijen negeren |
 | Statussen | Completed 543, Assigned 290, Rejected 18, Readytoshoot 11, Signedup 2, Onhold 1 | Alleen `Completed` telt, conform jouw regel |
 | Tasks-waarden | `ExteriorWinter` 289, `Interior` 614, `ExteriorSummer` 603, `Drone` 254 | Vaste woordenlijst, pipe-gescheiden — veilig te parsen |
-| **Kandidaten (jouw regel letterlijk)** | **319 rijen → 306 unieke acco-id's** | Dit is de bruto oogst |
+| **Wintershoots per land** | **AT 285 — geen enkele in BE/NL/FR/DE** | Winterbewerkingen zijn per definitie AT-only |
+| AT-rijen in de export | 564 | Alleen deze zijn kandidaat |
+| Completed + summer, geen winter op de rij | 154 | Jouw regel, binnen AT |
 | Daarvan met ergens al een winter-regel | 44 (35 Completed, 11 Assigned) | **Beslispunt A**, zie §4 |
-| Netto zonder enige winter | 262 unieke acco-id's | |
-| Daarvan al in de app-database | 28 | Import moet die overslaan, niet dubbel aanmaken |
-| **Netto nieuw voor de app** | **234 opdrachten** | Dit is de echte omvang van één import |
+| Netto kandidaten | 110 | |
+| Daarvan al in de app-database | 14 | Import moet die overslaan, niet dubbel aanmaken |
+| **Netto nieuw voor de app** | **96 opdrachten** | Dit is de echte omvang van één import |
 | `Sorteersleutel (hulp)` | 865 waarden, **865 uniek**, 0 leeg | Perfecte natuurlijke sleutel voor idempotente import |
 | Verhuurexperts in xlsx vs. app | 23 vs. 19, **0 exacte matches** | **Blokkerend**, zie §4 beslispunt B |
 | `summer_to_winter` als editing goal | Bestaat al | Import kan er direct op koppelen |
 | Storage bucket `guidelines` | Bestaat, maar is **private** | **Latente bug**, zie §3 |
 | Gebruikers in `app_users` | 1 (`myvilla@villaforyou.com`, rol `admin`) | Geen account aan te maken; rol klopt al |
-| **Wintershoots per land** | **AT 285, onbekend 4 — geen enkele in BE/NL/FR/DE** | Bevestigt: wintershoots gebeuren alleen in Oostenrijk |
-| **Land van de 234 kandidaten** | **AT 96, BE 65, NL 43, FR 25, DE 5** | Alleen de 96 AT-woningen vermijden een echte shoot |
 | Drone bij losse AT-wintershoots | 32 van 145 = **22%** | Relevant voor het tarief, zie hieronder |
 | Kosten per wintershoot (tarieven Wouter) | € 137 = € 50 buiten + € 55 drone + € 32 reistoeslag | Vervangt mijn eerdere afleiding |
 | Kosten AI-editing per maand (blad Personeel & tools) | € 215,55 | Tegenhanger van de besparing |
@@ -57,11 +57,12 @@ fouten:
    shoots uit de Rapportage-tab (€ 81.951 ÷ 420), gedomineerd door volle
    binnen+buiten-shoots. Een wintershoot is een losse buitenshoot. Het echte
    tarief is € 137 (€ 50 buiten + € 55 drone + € 32 reistoeslag 0–50 km).
-2. **Niet alle 234 kandidaten vermijden een shoot.** Alle 285 wintershoots in de
-   export staan in AT; in BE, NL, FR en DE gebeuren ze simpelweg niet. Voor die
-   138 woningen was er nooit een wintershoot gepland, dus valt er ook niets te
-   besparen. Een AI-winterimpressie kan daar prima waarde hebben, maar niet als
-   vermeden kosten.
+2. **Ik rekende met kandidaten buiten Oostenrijk.** Alle 285 wintershoots in de
+   export staan in AT; in BE, NL, FR en DE gebeuren ze niet. Wouter heeft
+   bevestigd dat winterimpressies daar ook nooit nodig zijn (beslispunt E). Die
+   138 woningen vallen dus helemaal weg als kandidaat, niet alleen uit de
+   besparing. De historie bevestigt het: van de 48 bestaande
+   summer→winter-opdrachten in de database staan er 48 in AT en nul daarbuiten.
 
 **De eerlijke som: 96 AT-kandidaten × € 137 ≈ € 13.200 vermeden fotografiekosten**,
 tegenover € 2.587 AI-editingkosten per jaar. Ruim een factor 5 rendement — een
@@ -133,21 +134,16 @@ alleen server-side.*
 Je uploadt straks gewoon het bestand dat je toch elke maand bijwerkt; geen extra
 exportstap.
 
-**E. De 138 kandidaten buiten Oostenrijk.** ⬜ *Open — ik heb jouw keuze nodig.*
-Van de 234 kandidaten liggen er 96 in AT en 138 in BE (65), NL (43), FR (25) en
-DE (5). In de hele export staat geen enkele wintershoot buiten AT, dus voor die
-138 woningen vermijdt een AI-winterbewerking geen kosten: er was nooit een
-wintershoot gepland.
+**E. Kandidaten buiten Oostenrijk.** ✅ *Besloten: alleen AT, hard gefilterd.*
+Wouter: "we hebben nooit winterimpressies nodig voor andere landen dan AT." Dat
+is dus geen keuze per import maar een permanente regel. `acco_id` begint met
+`AT.` wordt onderdeel van de kandidaatdefinitie zelf — de 138 woningen in BE, NL,
+FR en DE komen niet in de preview voor en zijn ook geen uitvinkbare groep. Dat
+scheelt een hele groep in de importpreview en maakt de besparingsberekening
+eenduidig.
 
-De vraag is of je er tóch winterbeelden van wilt. Er is een redelijk argument
-voor — een Belgische of Franse woning met een winterimpressie verkoopt in het
-laagseizoen misschien beter — maar het is een ander doel dan kostenbesparing, en
-138 opdrachten is bijna twee derde van de oogst.
-
-*Voorstel:* importeren als aparte groep in de preview, standaard **uitgevinkt**,
-net als de winter-overlapgroep. Dan zie je ze staan, kun je er per land of in
-bulk alsnog voor kiezen, en blijft de standaardimport de 96 waar de businesscase
-hard is.
+De historie ondersteunt de regel: van de 48 bestaande summer→winter-opdrachten
+in de database liggen er 48 in AT en nul daarbuiten.
 
 ---
 
@@ -259,23 +255,24 @@ dat accountbeheer daar niet beschikbaar is.
    gezocht, niet op index. Kolomkoppen worden op naam gelezen, niet op positie —
    Ares kan van kolomvolgorde veranderen en dan moet de import klagen, niet
    stilletjes de verkeerde velden vullen.
-3. **Preview vóór commit** — nooit blind importeren. Vier groepen, elk met
+3. **Alleen AT.** `acco_id like 'AT.%'` zit in de kandidaatdefinitie (beslispunt
+   E). Rijen uit andere landen worden stil overgeslagen; de preview meldt wel
+   hoeveel er om die reden zijn genegeerd, zodat het geen onzichtbaar filter is.
+4. **Preview vóór commit** — nooit blind importeren. Drie groepen, elk met
    telling en uitklapbare rijen:
-   - *Nieuw in AT* (~96): worden aangemaakt, standaard aangevinkt.
-   - *Al in de app* (~28, match op `ares_row_key` of acco-id): overgeslagen.
+   - *Nieuw* (~96): worden aangemaakt, standaard aangevinkt.
+   - *Al in de app* (~14, match op `ares_row_key` of acco-id): overgeslagen.
    - *Heeft al een winter-shoot* (~44): standaard uitgevinkt, beslispunt A.
-   - *Buiten AT* (~138: BE 65, NL 43, FR 25, DE 5): standaard uitgevinkt,
-     beslispunt E. Vermijden geen shoot en tellen niet mee in de besparing.
    - *Probleem*: onbekende expert-alias of onleesbare datum. Blokkeert de import
      tot het is opgelost, met een directe link naar de aliaskoppeling.
 
    De preview toont per groep ook de bijbehorende besparing, zodat je vóór het
    importeren ziet wat de selectie oplevert.
-4. **Aanmaken:** status `new`, goal `summer_to_winter`, prioriteit uit kolom C
+5. **Aanmaken:** status `new`, goal `summer_to_winter`, prioriteit uit kolom C
    (`High`/`Medium`/`Low` → `high`/`medium`/`low`, `?` → `low`), verhuurexpert via
    de aliastabel, `request_date` uit `datum invoer` (dd/mm/yy), `source =
    'ares_import'`. Alles in één transactie via een server action met Zod.
-5. **Geen fotonummers.** De Ares-export bevat ze niet, dus deze opdrachten
+6. **Geen fotonummers.** De Ares-export bevat ze niet, dus deze opdrachten
    starten op "0 van 0". Dat is correct en al goed afgevangen: `canSubmitToQc`
    blokkeert inleveren met een concrete melding. Wel toevoegen: een quick filter
    "wacht op fotonummers" op het opdrachtenscherm, anders verdwijnen de
@@ -301,14 +298,16 @@ wat operationeel stuurt.
    het ingestelde bedrag. Het bedrag staat als leesbare aanname onder het getal
    ("96 vermeden shoots × € 137"), niet verstopt in de code — dan kan iedereen die
    ernaar kijkt de som narekenen en de aanname bestrijden.
-3. **Alleen AT telt mee in de besparing.** Wintershoots gebeuren nergens anders,
-   dus een winterbewerking op een BE/NL/FR-woning vermijdt geen kosten. Die
-   opdrachten tellen wel mee in de volumecijfers, niet in de euro's. De view die
-   dit berekent filtert expliciet op landcode uit de acco-id.
-3. Kaart "Kosten per bewerking": maandkosten gedeeld door goedgekeurde
+3. **Vangnet in de view.** Sinds beslispunt E importeert de app geen niet-AT
+   kandidaten meer, dus in de praktijk is alles AT. De besparingsview filtert
+   toch expliciet op `acco_id like 'AT.%'`, zodat een handmatig aangemaakte
+   uitzondering de euro's niet stilletjes kan opblazen. Bij oplevering telt die
+   view 39 al goedgekeurde AT-opdrachten — het dashboard staat dus vanaf dag één
+   op ongeveer € 5.300, niet op nul.
+4. Kaart "Kosten per bewerking": maandkosten gedeeld door goedgekeurde
    bewerkingen die maand, met de trend. Zakt die richting het ingestelde
    shoot-tarief, dan is de businesscase weg — dat wil je zien vóórdat het gebeurt.
-4. Optioneel losse tabel `cost_entries` als je echte factuurregels in de app wilt
+5. Optioneel losse tabel `cost_entries` als je echte factuurregels in de app wilt
    bijhouden. **Advies: niet doen.** Dat is dubbel werk naast Exact en je
    maandrapportage, en het is precies het soort feature dat de app langzaam in
    een slechte boekhouding verandert.
