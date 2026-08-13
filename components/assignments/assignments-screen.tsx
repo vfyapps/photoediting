@@ -18,6 +18,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { initialBulkActionState } from "@/app/assignment-bulk-state";
 import { updateAssignmentsBulk } from "@/app/actions";
@@ -108,12 +109,17 @@ export function AssignmentsScreen({
   const runBulkAction = useCallback(
     async (previousState: typeof initialBulkActionState, formData: FormData) => {
       const nextState = await updateAssignmentsBulk(previousState, formData);
-      if (nextState.status === "success") setSelectedIds(new Set());
+      if (nextState.status === "success") {
+        setSelectedIds(new Set());
+        toast.success(nextState.message);
+      } else if (nextState.status === "error") {
+        toast.error(nextState.message);
+      }
       return nextState;
     },
     [],
   );
-  const [bulkState, bulkAction, isBulkPending] = useActionState(
+  const [, bulkAction, isBulkPending] = useActionState(
     runBulkAction,
     initialBulkActionState,
   );
@@ -433,18 +439,6 @@ export function AssignmentsScreen({
               Wijzigen
             </Button>
             <Button onClick={() => setSelectedIds(new Set())} variant="ghost">Annuleren</Button>
-            {bulkState.message ? (
-              <p
-                aria-live="polite"
-                className={cn(
-                  "text-xs",
-                  bulkState.status === "error" && "text-red-700",
-                  bulkState.status === "success" && "text-emerald-700",
-                )}
-              >
-                {bulkState.message}
-              </p>
-            ) : null}
           </form>
         ) : null}
       </div>

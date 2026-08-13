@@ -47,6 +47,29 @@
   --color-vfy-coral: var(--vfy-coral);
   --color-vfy-coral-hover: var(--vfy-coral-hover);
 
+  /* Avatarpalet en grafiekpalet (BUILDPLAN.md §3): 8 categorische tinten,
+     gevalideerd tegen deze surfaces met de dataviz-skill (validate_palette.js,
+     --mode light --surface #ffffff en --mode dark --surface #16181a — beide
+     ALL CHECKS PASS). Vaste volgorde, nooit cyclisch toegewezen: slot-index =
+     hue-identiteit. Drie lichte tinten zitten onder 3:1 contrast — daarom nooit
+     als enige drager van betekenis, altijd met een label of icoon erbij (chip,
+     naam, tooltip). */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+
+  /* Voortgangsbalk (edit_items done/totaal) en de "te lang in QC"-attentietint
+     die AGENTS.md al noemt bij Screen 2. Losse tokens van de status-tints:
+     voortgang is een percentage, geen toestand. */
+  --color-progress-track: var(--progress-track);
+  --color-progress-fill: var(--progress-fill);
+  --color-attention-tint: var(--attention-tint);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,6 +144,23 @@
   --input: var(--vfy-border);
   --ring: var(--vfy-teal);
 
+  /* Chartpalet/avatarpalet: gevalideerd tegen deze surface (#ffffff) met
+     validate_palette.js --mode light --surface #ffffff → ALL CHECKS PASS
+     (worst adjacent CVD ΔE 9.1, normal-vision ΔE 19.6). Contrast op slot
+     3/4/5 zit onder 3:1 — altijd met een label/naam combineren. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+
+  --progress-track: var(--vfy-sand-deep);
+  --progress-fill: var(--vfy-teal);
+  --attention-tint: var(--vfy-warning-tint);
+
   --shadow-sm: 0 1px 2px rgba(29, 29, 27, 0.06), 0 1px 1px rgba(29, 29, 27, 0.04);
   --shadow-md: 0 4px 10px rgba(29, 29, 27, 0.08), 0 2px 4px rgba(29, 29, 27, 0.05);
   --shadow-lg: 0 16px 32px rgba(29, 29, 27, 0.16), 0 6px 12px rgba(29, 29, 27, 0.09);
@@ -158,6 +198,22 @@
   --input: var(--vfy-border);
   --ring: var(--vfy-teal-hover);
 
+  /* Zelfde 8 hues, donkere stap. Gevalideerd tegen deze surface (#16181a)
+     met --mode dark --surface #16181a → ALL CHECKS PASS (worst adjacent CVD
+     ΔE 8.4, normal-vision ΔE 19.3, contrast alle 8 ≥ 3:1). */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+
+  --progress-track: var(--vfy-sand-deep);
+  --progress-fill: var(--vfy-teal-hover);
+  --attention-tint: var(--vfy-warning-tint);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.45);
@@ -192,6 +248,22 @@
   --border: var(--vfy-border);
   --input: var(--vfy-border);
   --ring: var(--vfy-teal);
+
+  /* Sand is guest-facing marketing (niet gebruikt in dit interne opdrachtenscherm),
+     maar krijgt de tokens toch om nooit onbepaald te zijn. Zelfde lichte set,
+     niet apart hertest tegen de warmere sand-surface. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+
+  --progress-track: var(--vfy-sand-deep);
+  --progress-fill: var(--vfy-teal);
+  --attention-tint: var(--vfy-warning-tint);
 
   --shadow-sm: 0 1px 2px rgba(29, 29, 27, 0.06), 0 1px 1px rgba(29, 29, 27, 0.04);
   --shadow-md: 0 4px 10px rgba(29, 29, 27, 0.08), 0 2px 4px rgba(29, 29, 27, 0.05);

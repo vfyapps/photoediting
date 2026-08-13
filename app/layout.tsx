@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ibmPlexMono, notoSans, sen } from "@/lib/fonts";
+import { themeInitScript } from "@/lib/theme";
 
 import "./globals.css";
 
@@ -18,7 +19,11 @@ export default function RootLayout({
     <html
       className={`${sen.variable} ${notoSans.variable} ${ibmPlexMono.variable}`}
       lang="nl"
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );
