@@ -45,3 +45,20 @@ export const updateMagnificUrlSchema = z.object({
   assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
   magnificUrl: z.union([z.literal(""), z.url("Voer een geldige URL in")]),
 });
+
+const qcFindingSchema = z
+  .object({
+    photoNumber: z.number().int().positive().nullable(),
+    issueCode: z.string().min(1, "Kies een categorie voor elke bevinding"),
+    comment: z.string().trim().max(2000).nullable(),
+  })
+  .refine((finding) => finding.issueCode !== "other" || Boolean(finding.comment?.trim()), {
+    message: "Categorie 'Overig' vereist een toelichting",
+    path: ["comment"],
+  });
+
+export const submitQcReviewSchema = z.object({
+  assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+  decision: z.enum(["approved", "denied"], { error: "Ongeldige beslissing" }),
+  findings: z.array(qcFindingSchema).max(50, "Maximaal 50 bevindingen per ronde"),
+});

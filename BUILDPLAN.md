@@ -261,7 +261,7 @@ module; verificatieronde gedraaid.
 | 0 | DB toepassen, shell, tokens, palette, toasts | ✅ |
 | 1 | Opdrachtenscherm v2 (bord, tabel, callout) | ✅ |
 | 2 | Opdrachtdetail | ✅ |
-| 3 | QC-scherm + e2e-doorloop groen | ⬜ |
+| 3 | QC-scherm + e2e-doorloop groen | ⚠️ gebouwd, e2e nog niet live geverifieerd (geen Docker in deze sandbox) |
 | 4 | Dashboard + RLS-test groen | ⬜ |
 | 5 | Academy | ⬜ |
 | 6 | Polijstronde, README, AGENTS.md-changelog | ⬜ |
