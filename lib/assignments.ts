@@ -37,6 +37,7 @@ export type AssignmentFilters = {
   showArchive: boolean;
   mine: boolean;
   qcOverdue: boolean;
+  qcIssue: string;
 };
 
 export type AssignmentListItem = {

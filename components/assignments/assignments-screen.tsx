@@ -183,6 +183,7 @@ export function AssignmentsScreen({
     filters.search,
     filters.mine,
     filters.qcOverdue,
+    filters.qcIssue,
   ].filter(Boolean).length;
   const groups = groupAssignments(effectiveAssignments, group, filters);
 
@@ -196,6 +197,7 @@ export function AssignmentsScreen({
       q: null,
       mine: null,
       qc_overdue: null,
+      qc_issue: null,
     });
 
   return (

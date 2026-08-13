@@ -45,6 +45,7 @@ function parseFilters(params: SearchParams): AssignmentFilters {
       selectedStatus === "ai_rejected",
     mine: first(params.mine) === "1",
     qcOverdue: first(params.qc_overdue) === "1",
+    qcIssue: first(params.qc_issue).slice(0, 100),
   };
 }
 
@@ -129,6 +130,22 @@ export default async function AssignmentsPage({
   if (filters.priority) assignmentsQuery = assignmentsQuery.eq("priority", filters.priority);
   if (filters.goal) assignmentsQuery = assignmentsQuery.contains("goals", [filters.goal]);
   if (filters.search) assignmentsQuery = assignmentsQuery.ilike("acco_id", `%${filters.search}%`);
+  if (filters.qcIssue) {
+    // Klik-door vanaf het dashboard (Top QC-issues): welke opdrachten hebben
+    // ooit een bevinding van dit type gehad, over alle rondes.
+    const { data: findingRows } = await supabase
+      .from("qc_findings")
+      .select("qc_reviews!inner(assignment_id)")
+      .eq("issue_code", filters.qcIssue);
+    const matchingIds = [
+      ...new Set(
+        (findingRows ?? [])
+          .map((row) => row.qc_reviews?.assignment_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    assignmentsQuery = assignmentsQuery.in("id", matchingIds.length > 0 ? matchingIds : ["__geen__"]);
+  }
 
   const [
     assignmentsResult,
@@ -296,6 +313,7 @@ export default async function AssignmentsPage({
         filters.showArchive ? "archief" : "zonder-archief",
         filters.mine ? "mijn" : "alle",
         filters.qcOverdue ? "qc-vertraagd" : "qc-alles",
+        filters.qcIssue,
         view,
         group,
       ].join("|")}
