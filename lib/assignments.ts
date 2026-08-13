@@ -71,6 +71,92 @@ export function toEditItem(row: Tables<"edit_items">): EditItem {
   };
 }
 
+export type AssignmentDetail = {
+  id: string;
+  accoId: string;
+  status: AssignmentStatus;
+  priority: Priority;
+  requestDate: string | null;
+  dateAssigned: string | null;
+  completedDate: string | null;
+  createdAt: string;
+  briefing: string | null;
+  legacyNotes: string | null;
+  magnificUrl: string | null;
+  editorName: string | null;
+  rentalExpertName: string | null;
+  photoCount: number;
+  goals: string[];
+};
+
+export function toAssignmentDetail(row: Tables<"v_assignments">): AssignmentDetail | null {
+  if (!row.id || !row.acco_id || !row.status || !row.priority || !row.created_at) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    accoId: row.acco_id,
+    status: row.status,
+    priority: row.priority,
+    requestDate: row.request_date,
+    dateAssigned: row.date_assigned,
+    completedDate: row.date_completed,
+    createdAt: row.created_at,
+    briefing: row.briefing,
+    legacyNotes: row.legacy_notes,
+    magnificUrl: row.magnific_url,
+    editorName: row.editor_name,
+    rentalExpertName: row.rental_expert_name,
+    photoCount: row.photo_count ?? 0,
+    goals: row.goals ?? [],
+  };
+}
+
+export const statusLabelsNl: Record<AssignmentStatus, string> = {
+  backlog: "Backlog",
+  new: "Nieuw",
+  in_process: "In behandeling",
+  qc: "QC",
+  approved: "Goedgekeurd",
+  denied: "Afgekeurd",
+  ai_rejected: "AI afgewezen",
+};
+
+// De vaste kwaliteitseisen uit de Legenda-tab / Academy-sectie van AGENTS.md.
+// Statisch, niet per goal — vandaar hier en niet in de database.
+/**
+ * Zet "12, 15, 18" (of met spaties/puntkomma's) om naar unieke, positieve
+ * fotonummers, op volgorde van eerste voorkomen. Puur en test baar zonder
+ * database — het detailscherm en de server action gebruiken dezelfde functie
+ * zodat de preview nooit afwijkt van wat er echt wordt opgeslagen.
+ */
+export function parsePhotoNumbers(input: string): number[] {
+  const seen = new Set<number>();
+  const result: number[] = [];
+  for (const token of input.split(/[,;\s]+/)) {
+    if (!token) continue;
+    const n = Number.parseInt(token, 10);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (!seen.has(n)) {
+      seen.add(n);
+      result.push(n);
+    }
+  }
+  return result;
+}
+
+export const selfCheckItems = [
+  "Landscape georiënteerd",
+  "Minimaal 2048 × 1536 pixels",
+  "Geen personen of kentekens zichtbaar",
+  "Geen watermerk",
+  "Goed belicht",
+  "Natuurlijke kleuren",
+  "Geen elementen toegevoegd die niet in het origineel stonden",
+  "Geen AI-artefacten langs de randen",
+] as const;
+
 export type EditorOption = Pick<Tables<"editors">, "id" | "name">;
 export type RentalExpertOption = Pick<Tables<"rental_experts">, "id" | "name">;
 export type GoalOption = Pick<Tables<"editing_goals">, "code" | "label_nl">;

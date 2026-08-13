@@ -98,7 +98,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                   {visibleResults.map((result) => (
                     <CommandItem
                       key={result.id}
-                      onSelect={() => go(`/?q=${encodeURIComponent(result.accoId)}`)}
+                      onSelect={() => go(`/opdrachten/${result.id}`)}
                       value={result.id}
                     >
                       <span className="font-mono text-xs">{result.accoId}</span>

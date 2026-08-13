@@ -7,7 +7,7 @@ import type { BulkActionState } from "@/app/assignment-bulk-state";
 import { boardStatuses, type AssignmentStatus } from "@/lib/assignments";
 import { createClient } from "@/lib/supabase/server";
 import { bulkActionSchema } from "@/lib/validation";
-import { canSubmitToQc } from "@/lib/workflow";
+import { canDeny, canSubmitToQc } from "@/lib/workflow";
 
 export async function updateAssignmentsBulk(
   _previousState: BulkActionState,
@@ -121,6 +121,19 @@ export async function updateAssignmentStatus(
     if (!guard.ok) return { ok: false, message: guard.message };
   }
 
+  if (parsed.data.nextStatus === "denied") {
+    // Best-effort: telt bevindingen over alle rondes van deze opdracht. De
+    // echte, rondegebonden variant hoort bij de QC-review-flow (WP3); dit is
+    // het vangnet zolang "denied" ook los van die flow gezet kan worden.
+    const { count: findingCount } = await supabase
+      .from("qc_findings")
+      .select("id, qc_reviews!inner(assignment_id)", { count: "exact", head: true })
+      .eq("qc_reviews.assignment_id", parsed.data.assignmentId);
+
+    const guard = canDeny({ findingCount: findingCount ?? 0 });
+    if (!guard.ok) return { ok: false, message: guard.message };
+  }
+
   const { error } = await supabase
     .from("assignments")
     .update({ status: parsed.data.nextStatus })
@@ -136,6 +149,7 @@ export async function updateAssignmentStatus(
     };
   }
 
+  revalidatePath(`/opdrachten/${parsed.data.assignmentId}`);
   revalidatePath("/");
   return { ok: true };
 }
@@ -155,6 +169,12 @@ export async function toggleEditItemDone(
   }
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("edit_items")
+    .select("assignment_id")
+    .eq("id", parsed.data.editItemId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("edit_items")
     .update({ done: parsed.data.done, done_at: parsed.data.done ? new Date().toISOString() : null })
@@ -170,6 +190,7 @@ export async function toggleEditItemDone(
     };
   }
 
+  if (existing?.assignment_id) revalidatePath(`/opdrachten/${existing.assignment_id}`);
   revalidatePath("/");
   return { ok: true };
 }

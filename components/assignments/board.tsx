@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   DndContext,
   type DragEndEvent,
@@ -224,7 +225,12 @@ function BoardCard({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-sm font-semibold">{assignment.accoId}</h3>
+              <Link
+                className="truncate text-sm font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                href={`/opdrachten/${assignment.id}`}
+              >
+                {assignment.accoId}
+              </Link>
               <span className="truncate text-xs text-muted-foreground">
                 {assignment.rentalExpertName ?? "Onbekend"}
               </span>

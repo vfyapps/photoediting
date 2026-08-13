@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChevronRight } from "lucide-react";
 
@@ -230,7 +231,12 @@ function TableRow({
       </div>
       <div className="min-w-0 flex-1 px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="truncate font-semibold">{assignment.accoId}</span>
+          <Link
+            className="truncate font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            href={`/opdrachten/${assignment.id}`}
+          >
+            {assignment.accoId}
+          </Link>
           <span className="truncate text-xs text-muted-foreground">
             {assignment.rentalExpertName ?? "Onbekend"}
           </span>

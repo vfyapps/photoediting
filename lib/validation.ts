@@ -28,3 +28,20 @@ export const bulkActionSchema = z.discriminatedUnion("operation", [
 ]);
 
 export type BulkAction = z.infer<typeof bulkActionSchema>;
+
+export const addEditItemsSchema = z.object({
+  assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+  goalCode: z.string().min(1, "Selecteer een editing goal"),
+  photoNumbers: z
+    .array(z.number().int().positive("Fotonummer moet groter zijn dan 0"))
+    .min(1, "Voer minstens één fotonummer in"),
+});
+
+export const deleteEditItemSchema = z.object({
+  editItemId: z.string().uuid("Ongeldig foto-ID"),
+});
+
+export const updateMagnificUrlSchema = z.object({
+  assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+  magnificUrl: z.union([z.literal(""), z.url("Voer een geldige URL in")]),
+});
