@@ -41,18 +41,39 @@ Niet aangenomen maar gemeten, op de echte xlsx en de live database:
 | `summer_to_winter` als editing goal | Bestaat al | Import kan er direct op koppelen |
 | Storage bucket `guidelines` | Bestaat, maar is **private** | **Latente bug**, zie §3 |
 | Gebruikers in `app_users` | 1 (`myvilla@villaforyou.com`, rol `admin`) | Geen account aan te maken; rol klopt al |
-| Gem. kosten per fotoshoot (uit jouw eigen rapportage) | € 195,12 (vangnetgemiddelde € 185,55) | De basis voor de besparingsberekening |
+| **Wintershoots per land** | **AT 285, onbekend 4 — geen enkele in BE/NL/FR/DE** | Bevestigt: wintershoots gebeuren alleen in Oostenrijk |
+| **Land van de 234 kandidaten** | **AT 96, BE 65, NL 43, FR 25, DE 5** | Alleen de 96 AT-woningen vermijden een echte shoot |
+| Drone bij losse AT-wintershoots | 32 van 145 = **22%** | Relevant voor het tarief, zie hieronder |
+| Kosten per wintershoot (tarieven Wouter) | € 137 = € 50 buiten + € 55 drone + € 32 reistoeslag | Vervangt mijn eerdere afleiding |
 | Kosten AI-editing per maand (blad Personeel & tools) | € 215,55 | Tegenhanger van de besparing |
 
-### De twee getallen die dit plan interessant maken
+### De businesscase — gecorrigeerd
 
-234 nieuwe summer→winter-opdrachten × € 195 vermeden fotoshoot ≈ **€ 45.600
-vermeden kosten**, tegenover **€ 2.587 AI-editingkosten per jaar**. Jouw eigen
-rapportage laat een verwachte overschrijding van de fotografiebegroting van
-€ 39.608 zien. Deze tool is precies het antwoord daarop — maar dat is nu
-nergens in de app te zien. Dat repareren we in WP4, en dat is meteen het
-sterkste antwoord op "ik ben niet blown away": de app laat dan zien wat hij
-het bedrijf oplevert, niet alleen wat er nog te doen is.
+**Mijn eerste versie van dit plan zat er een factor 3,5 naast** en dat is de
+moeite waard om vast te leggen. Ik rekende 234 kandidaten × € 195 ≈ € 45.600. Twee
+fouten:
+
+1. **€ 195 was het verkeerde tarief.** Dat is het gemengde gemiddelde over álle
+   shoots uit de Rapportage-tab (€ 81.951 ÷ 420), gedomineerd door volle
+   binnen+buiten-shoots. Een wintershoot is een losse buitenshoot. Het echte
+   tarief is € 137 (€ 50 buiten + € 55 drone + € 32 reistoeslag 0–50 km).
+2. **Niet alle 234 kandidaten vermijden een shoot.** Alle 285 wintershoots in de
+   export staan in AT; in BE, NL, FR en DE gebeuren ze simpelweg niet. Voor die
+   138 woningen was er nooit een wintershoot gepland, dus valt er ook niets te
+   besparen. Een AI-winterimpressie kan daar prima waarde hebben, maar niet als
+   vermeden kosten.
+
+**De eerlijke som: 96 AT-kandidaten × € 137 ≈ € 13.200 vermeden fotografiekosten**,
+tegenover € 2.587 AI-editingkosten per jaar. Ruim een factor 5 rendement — een
+stuk minder spectaculair dan € 45.600, maar dit getal houdt wél stand als iemand
+ernaar vraagt. En dat is precies wat je wilt van een getal dat groot op een
+dashboard komt te staan.
+
+**Kanttekening bij de € 137.** Die som gaat uit van drone erbij en de laagste
+reisband. In de data zit bij losse AT-wintershoots maar in 22% van de gevallen
+drone. Gewogen kom je op € 94 (dichtbij) tot € 126 (middenband 51–100 km). Het
+bedrag wordt daarom een instelling die de coördinator zelf zet — € 137 is de
+startwaarde omdat het van de eigenaar komt, niet van een schatting van mij.
 
 ---
 
@@ -111,6 +132,22 @@ gaat op Vercel — dat verandert de aanpak niet, maar wél wat er omheen moet. Z
 alleen server-side.*
 Je uploadt straks gewoon het bestand dat je toch elke maand bijwerkt; geen extra
 exportstap.
+
+**E. De 138 kandidaten buiten Oostenrijk.** ⬜ *Open — ik heb jouw keuze nodig.*
+Van de 234 kandidaten liggen er 96 in AT en 138 in BE (65), NL (43), FR (25) en
+DE (5). In de hele export staat geen enkele wintershoot buiten AT, dus voor die
+138 woningen vermijdt een AI-winterbewerking geen kosten: er was nooit een
+wintershoot gepland.
+
+De vraag is of je er tóch winterbeelden van wilt. Er is een redelijk argument
+voor — een Belgische of Franse woning met een winterimpressie verkoopt in het
+laagseizoen misschien beter — maar het is een ander doel dan kostenbesparing, en
+138 opdrachten is bijna twee derde van de oogst.
+
+*Voorstel:* importeren als aparte groep in de preview, standaard **uitgevinkt**,
+net als de winter-overlapgroep. Dan zie je ze staan, kun je er per land of in
+bulk alsnog voor kiezen, en blijft de standaardimport de 96 waar de businesscase
+hard is.
 
 ---
 
@@ -224,11 +261,16 @@ dat accountbeheer daar niet beschikbaar is.
    stilletjes de verkeerde velden vullen.
 3. **Preview vóór commit** — nooit blind importeren. Vier groepen, elk met
    telling en uitklapbare rijen:
-   - *Nieuw* (~234): worden aangemaakt, standaard aangevinkt.
+   - *Nieuw in AT* (~96): worden aangemaakt, standaard aangevinkt.
    - *Al in de app* (~28, match op `ares_row_key` of acco-id): overgeslagen.
    - *Heeft al een winter-shoot* (~44): standaard uitgevinkt, beslispunt A.
+   - *Buiten AT* (~138: BE 65, NL 43, FR 25, DE 5): standaard uitgevinkt,
+     beslispunt E. Vermijden geen shoot en tellen niet mee in de besparing.
    - *Probleem*: onbekende expert-alias of onleesbare datum. Blokkeert de import
      tot het is opgelost, met een directe link naar de aliaskoppeling.
+
+   De preview toont per groep ook de bijbehorende besparing, zodat je vóór het
+   importeren ziet wat de selectie oplevert.
 4. **Aanmaken:** status `new`, goal `summer_to_winter`, prioriteit uit kolom C
    (`High`/`Medium`/`Low` → `high`/`medium`/`low`, `?` → `low`), verhuurexpert via
    de aliastabel, `request_date` uit `datum invoer` (dd/mm/yy), `source =
@@ -236,13 +278,13 @@ dat accountbeheer daar niet beschikbaar is.
 5. **Geen fotonummers.** De Ares-export bevat ze niet, dus deze opdrachten
    starten op "0 van 0". Dat is correct en al goed afgevangen: `canSubmitToQc`
    blokkeert inleveren met een concrete melding. Wel toevoegen: een quick filter
-   "wacht op fotonummers" op het opdrachtenscherm, anders verdwijnen 234
-   opdrachten in de massa.
+   "wacht op fotonummers" op het opdrachtenscherm, anders verdwijnen de
+   geïmporteerde opdrachten in de massa.
 
 **Klaar wanneer:** dezelfde xlsx twee keer achter elkaar importeren levert de
 tweede keer nul nieuwe opdrachten op; een bestand met een onbekende expert
-weigert netjes; en na import staan er ~234 nieuwe opdrachten met de juiste
-expert en prioriteit.
+weigert netjes; en na import staan de geselecteerde opdrachten erin met de
+juiste expert en prioriteit.
 
 ### V3-WP4 — Kosten en besparing *(vraag 4)*
 
@@ -251,14 +293,21 @@ goed en blijft leidend. De app rekent niet de financiën na, hij laat alleen zie
 wat operationeel stuurt.
 
 1. Twee nieuwe `app_settings`, beheerbaar in WP2: `avoided_shoot_cost_eur`
-   (default 195,12 — jouw gemiddelde) en `monthly_editing_cost_eur` (215,55).
+   (**default 137**, met de opbouw € 50 buiten + € 55 drone + € 32 reistoeslag als
+   hulptekst bij het veld) en `monthly_editing_cost_eur` (215,55). Beide zonder
+   deploy aanpasbaar.
 2. **Dashboard-hero wordt de besparing:** "€ X vermeden fotografiekosten dit
-   seizoen" = aantal `approved` summer→winter-opdrachten × bedrag per shoot, met
-   het huidige hero-getal eronder. Dit is het signature-moment van het dashboard
-   en het antwoord op de begrotingsoverschrijding uit jouw rapportage.
+   seizoen" = aantal goedgekeurde summer→winter-opdrachten **op AT-woningen** ×
+   het ingestelde bedrag. Het bedrag staat als leesbare aanname onder het getal
+   ("96 vermeden shoots × € 137"), niet verstopt in de code — dan kan iedereen die
+   ernaar kijkt de som narekenen en de aanname bestrijden.
+3. **Alleen AT telt mee in de besparing.** Wintershoots gebeuren nergens anders,
+   dus een winterbewerking op een BE/NL/FR-woning vermijdt geen kosten. Die
+   opdrachten tellen wel mee in de volumecijfers, niet in de euro's. De view die
+   dit berekent filtert expliciet op landcode uit de acco-id.
 3. Kaart "Kosten per bewerking": maandkosten gedeeld door goedgekeurde
-   bewerkingen die maand, met de trend. Zakt die richting de € 195, dan is de
-   businesscase weg — dat wil je zien vóórdat het gebeurt.
+   bewerkingen die maand, met de trend. Zakt die richting het ingestelde
+   shoot-tarief, dan is de businesscase weg — dat wil je zien vóórdat het gebeurt.
 4. Optioneel losse tabel `cost_entries` als je echte factuurregels in de app wilt
    bijhouden. **Advies: niet doen.** Dat is dubbel werk naast Exact en je
    maandrapportage, en het is precies het soort feature dat de app langzaam in
@@ -287,7 +336,7 @@ Op volgorde van opbrengst:
 
 1. **Zoeken verbreden.** Nu alleen `ilike` op acco-id. Uitbreiden naar
    expertnaam en editornaam, in de lijst én in de command palette.
-2. **Bulk-acties op de import-oogst.** 234 opdrachten in één klap toewijzen aan
+2. **Bulk-acties op de import-oogst.** Tientallen opdrachten in één klap toewijzen aan
    een editor moet kunnen; de zwevende bulkbalk kan dat al, maar "selecteer alle
    resultaten van dit filter" ontbreekt nog.
 3. **Attentiestrook uitbreiden** met "X opdrachten wachten op fotonummers", zodat
@@ -360,7 +409,7 @@ omvang en kostte ongeveer evenveel. De token- en tijdinschatting van v2 bleek
 redelijk te kloppen; ik verwacht hier hetzelfde orde van grootte.
 
 De volgorde is zo gekozen dat je na WP3 al het meeste plezier hebt: dan staan de
-234 opdrachten erin en is het beheer op orde. WP4 is klein maar levert het
+de geïmporteerde opdrachten erin en is het beheer op orde. WP4 is klein maar levert het
 verhaal waar de app om vraagt.
 
 ---
