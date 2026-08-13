@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      academy_prompts: {
+        Row: {
+          goal_code: string | null
+          id: string
+          notes_md: string | null
+          prompt_text: string
+          sort_order: number
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          goal_code?: string | null
+          id?: string
+          notes_md?: string | null
+          prompt_text: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          goal_code?: string | null
+          id?: string
+          notes_md?: string | null
+          prompt_text?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_prompts_goal_code_fkey"
+            columns: ["goal_code"]
+            isOneToOne: false
+            referencedRelation: "editing_goals"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "academy_prompts_goal_code_fkey"
+            columns: ["goal_code"]
+            isOneToOne: false
+            referencedRelation: "v_goal_usage"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "academy_prompts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academy_reads: {
+        Row: {
+          guideline_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          guideline_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          guideline_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academy_reads_guideline_id_fkey"
+            columns: ["guideline_id"]
+            isOneToOne: false
+            referencedRelation: "guidelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academy_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           description: string | null
@@ -142,6 +230,8 @@ export type Database = {
         Row: {
           assignment_id: string
           created_at: string
+          done: boolean
+          done_at: string | null
           goal_code: string
           id: string
           is_hero: boolean
@@ -150,6 +240,8 @@ export type Database = {
         Insert: {
           assignment_id: string
           created_at?: string
+          done?: boolean
+          done_at?: string | null
           goal_code: string
           id?: string
           is_hero?: boolean
@@ -158,6 +250,8 @@ export type Database = {
         Update: {
           assignment_id?: string
           created_at?: string
+          done?: boolean
+          done_at?: string | null
           goal_code?: string
           id?: string
           is_hero?: boolean
@@ -295,9 +389,12 @@ export type Database = {
           goal_code: string | null
           id: string
           is_published: boolean
+          origin: Database["public"]["Enums"]["guideline_origin"]
+          qc_issue_code: string | null
           slug: string
           sort_order: number
           title: string
+          track: Database["public"]["Enums"]["guideline_track"]
           updated_at: string
           updated_by: string | null
         }
@@ -307,9 +404,12 @@ export type Database = {
           goal_code?: string | null
           id?: string
           is_published?: boolean
+          origin?: Database["public"]["Enums"]["guideline_origin"]
+          qc_issue_code?: string | null
           slug: string
           sort_order?: number
           title: string
+          track?: Database["public"]["Enums"]["guideline_track"]
           updated_at?: string
           updated_by?: string | null
         }
@@ -319,9 +419,12 @@ export type Database = {
           goal_code?: string | null
           id?: string
           is_published?: boolean
+          origin?: Database["public"]["Enums"]["guideline_origin"]
+          qc_issue_code?: string | null
           slug?: string
           sort_order?: number
           title?: string
+          track?: Database["public"]["Enums"]["guideline_track"]
           updated_at?: string
           updated_by?: string | null
         }
@@ -338,6 +441,20 @@ export type Database = {
             columns: ["goal_code"]
             isOneToOne: false
             referencedRelation: "v_goal_usage"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "guidelines_qc_issue_code_fkey"
+            columns: ["qc_issue_code"]
+            isOneToOne: false
+            referencedRelation: "qc_issue_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "guidelines_qc_issue_code_fkey"
+            columns: ["qc_issue_code"]
+            isOneToOne: false
+            referencedRelation: "v_qc_issue_frequency"
             referencedColumns: ["code"]
           },
           {
@@ -604,6 +721,7 @@ export type Database = {
           gem_doorlooptijd_dagen: number | null
           in_process: number | null
           toegewezen: number | null
+          user_id: string | null
         }
         Relationships: []
       }
@@ -650,6 +768,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_team_average: {
+        Row: {
+          approval_pct: number | null
+          editors: number | null
+          fotos: number | null
+          gem_doorlooptijd_dagen: number | null
+          toegewezen: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       current_app_role: {
@@ -657,6 +785,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       is_coordinator: { Args: never; Returns: boolean }
+      is_current_user_editor: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "coordinator" | "editor" | "viewer"
@@ -668,6 +797,8 @@ export type Database = {
         | "approved"
         | "denied"
         | "ai_rejected"
+      guideline_origin: "manual" | "qc_suggested"
+      guideline_track: "onboarding" | "goal" | "tips"
       priority_level: "low" | "medium" | "high"
       qc_decision: "approved" | "denied"
     }
@@ -807,6 +938,8 @@ export const Constants = {
         "denied",
         "ai_rejected",
       ],
+      guideline_origin: ["manual", "qc_suggested"],
+      guideline_track: ["onboarding", "goal", "tips"],
       priority_level: ["low", "medium", "high"],
       qc_decision: ["approved", "denied"],
     },

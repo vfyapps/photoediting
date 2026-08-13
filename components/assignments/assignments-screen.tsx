@@ -27,7 +27,6 @@ import {
   PriorityBadge,
   StatusBadge,
 } from "@/components/assignments/assignment-card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   assignmentStatuses,
@@ -256,7 +255,7 @@ export function AssignmentsScreen({
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <SlidersHorizontal className="size-4" /> Filters
-              {activeFilterCount > 0 ? <Badge variant="secondary">{activeFilterCount}</Badge> : null}
+              {activeFilterCount > 0 ? <CountPill value={activeFilterCount} /> : null}
             </div>
             {activeFilterCount > 0 ? (
               <Button onClick={clearFilters} size="sm" variant="ghost">
@@ -502,8 +501,18 @@ function GroupHeader({
           <span className="text-sm font-medium">{assignmentGroup.label}</span>
         )}
       </div>
-      <Badge variant="secondary">{assignmentGroup.assignments.length}</Badge>
+      <CountPill value={assignmentGroup.assignments.length} />
     </div>
+  );
+}
+
+// A count is not a status, so it gets neither Chip nor Badge (both carry
+// semantic meaning) — just the mono system voice on a muted surface.
+function CountPill({ value }: { value: number }) {
+  return (
+    <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
+      {value}
+    </span>
   );
 }
 

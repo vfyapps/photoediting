@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { ibmPlexMono, notoSans, sen } from "@/lib/fonts";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="nl">
+    <html
+      className={`${sen.variable} ${notoSans.variable} ${ibmPlexMono.variable}`}
+      lang="nl"
+    >
       <body>{children}</body>
     </html>
   );
