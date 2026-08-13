@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, ClipboardCheck, GraduationCap, LayoutGrid } from "lucide-react";
+import { BarChart3, ClipboardCheck, GraduationCap, LayoutGrid, Settings } from "lucide-react";
 
 import type { CurrentUser } from "@/lib/session";
 
@@ -18,6 +18,7 @@ export const navItems: NavItem[] = [
   { href: "/qc", label: "QC", icon: ClipboardCheck, roles: ["admin", "coordinator"] },
   { href: "/academy", label: "Academy", icon: GraduationCap, roles: null },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3, roles: ["admin", "coordinator"] },
+  { href: "/beheer", label: "Beheer", icon: Settings, roles: ["admin", "coordinator"] },
 ];
 
 export function visibleNavItems(role: CurrentUser["role"]): NavItem[] {

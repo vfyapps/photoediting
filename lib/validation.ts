@@ -102,3 +102,84 @@ export const uploadGuidelineExampleSchema = z.object({
 export const deleteGuidelineExampleSchema = z.object({
   exampleId: z.string().uuid("Ongeldig voorbeeld"),
 });
+
+// ── Beheer (V3-WP2) ──────────────────────────────────────────────────────────
+
+const appRoleSchema = z.enum(["admin", "coordinator", "editor", "viewer"], {
+  error: "Kies een geldige rol",
+});
+
+export const inviteUserSchema = z.object({
+  email: z.email("Voer een geldig e-mailadres in"),
+  fullName: z.string().trim().min(1, "Naam is verplicht").max(200),
+  role: appRoleSchema,
+});
+
+export const updateUserRoleSchema = z.object({
+  userId: z.string().uuid("Ongeldige gebruiker"),
+  role: appRoleSchema,
+});
+
+export const setUserActiveSchema = z.object({
+  userId: z.string().uuid("Ongeldige gebruiker"),
+  isActive: z.boolean(),
+});
+
+export const upsertEditorSchema = z.object({
+  id: z.string().uuid().nullable(),
+  name: z.string().trim().min(1, "Naam is verplicht").max(150),
+  isActive: z.boolean(),
+});
+
+export const linkEditorToUserSchema = z.object({
+  editorId: z.string().uuid("Ongeldige editor"),
+  userId: z.string().uuid("Ongeldige gebruiker").nullable(),
+});
+
+export const upsertExpertSchema = z.object({
+  id: z.string().uuid().nullable(),
+  name: z.string().trim().min(1, "Naam is verplicht").max(150),
+  email: z.union([z.literal(""), z.email("Voer een geldig e-mailadres in")]).nullable(),
+  country: z.string().trim().max(10).nullable(),
+  isActive: z.boolean(),
+});
+
+const settingKeys = [
+  "qc_reminder_days",
+  "max_photos_per_property",
+  "qc_issue_callout_threshold",
+  "magnific_base_url",
+  "ares_base_url",
+] as const;
+
+export const updateSettingSchema = z.object({
+  key: z.enum(settingKeys, { error: "Onbekende instelling" }),
+  value: z.string().trim().max(500),
+});
+
+export const upsertEditingGoalSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(2, "Code moet minstens 2 tekens zijn")
+    .max(50)
+    .regex(/^[a-z0-9_]+$/, "Code mag alleen kleine letters, cijfers en underscores bevatten"),
+  labelNl: z.string().trim().min(1, "Nederlandse naam is verplicht").max(150),
+  labelEn: z.string().trim().min(1, "Engelse naam is verplicht").max(150),
+  description: z.string().trim().max(500).nullable(),
+  isActive: z.boolean(),
+  sortOrder: z.number().int(),
+});
+
+export const upsertQcIssueTypeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(2, "Code moet minstens 2 tekens zijn")
+    .max(50)
+    .regex(/^[a-z0-9_]+$/, "Code mag alleen kleine letters, cijfers en underscores bevatten"),
+  labelNl: z.string().trim().min(1, "Naam is verplicht").max(150),
+  description: z.string().trim().max(500).nullable(),
+  isActive: z.boolean(),
+  sortOrder: z.number().int(),
+});

@@ -2,10 +2,11 @@
 
 Interne fotobewerkingsapp van Villa for You, ter vervanging van de Excel-tracker. De app
 gebruikt Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui en Supabase met
-`@supabase/ssr`. Vijf schermen: Opdrachten (bord + tabel, de default), Opdrachtdetail,
-QC (toetsenbord-eerst triage), Dashboard en Academy (leermateriaal + de QC-feedbackloop).
-Zie `AGENTS.md` voor de functionele spec per scherm en `BUILDPLAN.md` voor de
-uitvoeringsgeschiedenis per werkpakket.
+`@supabase/ssr`. Zes schermen: Opdrachten (bord + tabel, de default), Opdrachtdetail,
+QC (toetsenbord-eerst triage), Dashboard, Academy (leermateriaal + de QC-feedbackloop)
+en Beheer (accounts, editors/verhuurexperts, instellingen, referentiedata —
+coordinator/admin). Zie `AGENTS.md` voor de functionele spec per scherm, `BUILDPLAN.md`
+voor WP0–WP6 en `BUILDPLAN-V3.md` voor de uitvoeringsgeschiedenis daarna.
 
 ## Lokaal draaien
 
@@ -25,7 +26,12 @@ Vereisten: Node.js 20.9 of nieuwer en npm.
 
 - `NEXT_PUBLIC_SUPABASE_URL`: URL van het Supabase-project.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: publieke anon key voor browser en server.
-- `SUPABASE_SERVICE_ROLE_KEY`: uitsluitend voor scripts. Importeer deze nooit in app-code.
+- `SUPABASE_SERVICE_ROLE_KEY`: uitsluitend nodig voor het Beheer-scherm (gebruikers
+  uitnodigen/activeren, `/beheer/gebruikers`) en losse scripts. Eén bestand in de
+  app-code mag deze importeren: `lib/supabase/admin.ts` — nergens anders (zie
+  AGENTS.md-changelog, amendement V3-WP2). Ontbreekt de key, dan blijft de rest van
+  de app gewoon werken; alleen accountbeheer toont een nette melding in plaats van
+  te crashen.
 
 ## Magic-link-inlog instellen
 
@@ -75,9 +81,29 @@ CLI-only sandbox zonder Docker. Draai ze op een machine met Docker vóór een re
 
 ## Deployen naar Vercel
 
-Importeer de repository in Vercel, voeg de twee publieke Supabase-variabelen toe aan de
-gewenste environments en deploy. Voeg de service-role key alleen toe wanneer een expliciet
-deployscript die nodig heeft; app-code mag hem niet gebruiken.
+Importeer de repository in Vercel, voeg de twee publieke Supabase-variabelen toe aan alle
+gewenste environments en deploy.
+
+### De service-role key: alleen op Production
+
+`SUPABASE_SERVICE_ROLE_KEY` omzeilt alle RLS. Vercel zet environment variables
+standaard op *alle* omgevingen — dat wil je hier expliciet niet, want dan krijgt
+elke preview-deploy van elke branch (ook een niet-gereviewde) volledige
+adminrechten op de productiedatabase, op een openbaar raadbare `*.vercel.app`-URL.
+
+1. Zet de key in Vercel **uitsluitend op Production**, niet op Preview of
+   Development (`Settings → Environment Variables`, environment-vinkjes).
+2. Zonder de key blijft de rest van de app werken; alleen `/beheer/gebruikers` toont
+   dan "accountbeheer is hier niet beschikbaar" in plaats van te crashen — dat is
+   opzettelijk, geen bug.
+3. Zet **Deployment Protection** aan voor preview-deploys
+   (`Settings → Deployment Protection`), zodat preview-URL's sowieso niet publiek
+   benaderbaar zijn — een extra laag, los van punt 1.
+4. Roteren: genereer een nieuwe service-role key in Supabase
+   (`Project Settings → API`), werk hem bij in Vercel (Production), en redeploy.
+   De oude key blijft geldig totdat je hem in Supabase intrekt.
+5. Zie AGENTS.md-changelog (amendement V3-WP2) en `lib/supabase/admin.ts` voor de
+   volledige onderbouwing van deze uitzondering op de "scripts only"-regel.
 
 ## Als een deploy mislukt
 

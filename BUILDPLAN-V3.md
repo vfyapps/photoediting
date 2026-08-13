@@ -418,7 +418,7 @@ verhaal waar de app om vraagt.
 | WP | Omschrijving | Status |
 |---|---|---|
 | 1 | Academy-foto's (signed URLs, upload, storage-RLS) | ✅ |
-| 2 | Adminscherm (gebruikers, editors, instellingen, referentiedata) | ⬜ |
+| 2 | Adminscherm (gebruikers, editors, instellingen, referentiedata) | ✅ |
 | 3 | Ares-import summer→winter | ⬜ |
 | 4 | Kosten en besparing | ⬜ |
 | 5 | Opdrachten bewerken | ⬜ |
