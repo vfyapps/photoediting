@@ -21,18 +21,18 @@ import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { initialBulkActionState } from "@/app/assignment-bulk-state";
-import { updateAssignmentsBulk } from "@/app/actions";
-import {
-  AssignmentCard,
-  createGoalLabels,
-  PriorityBadge,
-  StatusBadge,
-} from "@/components/assignments/assignment-card";
+import { updateAssignmentsBulk, updateAssignmentStatus } from "@/app/actions";
+import { AttentionStrip, type AttentionData } from "@/components/assignments/attention-strip";
+import { Board } from "@/components/assignments/board";
+import { createGoalLabels } from "@/components/assignments/assignment-card";
+import { VirtualizedTable, type AssignmentGroup } from "@/components/assignments/virtualized-table";
 import { Button } from "@/components/ui/button";
 import {
   assignmentStatuses,
   type AssignmentFilters,
   type AssignmentListItem,
+  type AssignmentStatus,
+  type EditItem,
   type EditorOption,
   type GoalOption,
   type GroupMode,
@@ -56,12 +56,8 @@ type AssignmentsScreenProps = {
   currentEditorName: string | null;
   qcReminderDays: number;
   today: string;
-};
-
-type AssignmentGroup = {
-  key: string;
-  label: string;
-  assignments: AssignmentListItem[];
+  attention: AttentionData;
+  editItemsByAssignment: Map<string, EditItem[]>;
 };
 
 const inputClassName =
@@ -69,22 +65,6 @@ const inputClassName =
 
 const openStatuses = new Set(["new", "in_process", "qc", "denied"]);
 const archiveStatuses = new Set(["approved", "ai_rejected"]);
-
-function daysBetween(start: string, end: string) {
-  const startDate = new Date(`${start.slice(0, 10)}T00:00:00Z`);
-  const endDate = new Date(`${end.slice(0, 10)}T00:00:00Z`);
-  return Math.max(
-    0,
-    Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000),
-  );
-}
-
-function getDaysOpen(assignment: AssignmentListItem, today: string) {
-  return daysBetween(
-    assignment.requestDate ?? assignment.createdAt,
-    assignment.completedDate ?? today,
-  );
-}
 
 export function AssignmentsScreen({
   assignments,
@@ -99,6 +79,8 @@ export function AssignmentsScreen({
   currentEditorName,
   qcReminderDays,
   today,
+  attention,
+  editItemsByAssignment,
 }: AssignmentsScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -106,6 +88,41 @@ export function AssignmentsScreen({
   const [isNavigating, startNavigation] = useTransition();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchDraft, setSearchDraft] = useState(filters.search);
+  const [statusOverrides, setStatusOverrides] = useState<Map<string, AssignmentStatus>>(
+    new Map(),
+  );
+
+  const handleStatusChange = useCallback(
+    async (assignmentId: string, nextStatus: AssignmentStatus) => {
+      setStatusOverrides((current) => new Map(current).set(assignmentId, nextStatus));
+      const result = await updateAssignmentStatus(assignmentId, nextStatus);
+      setStatusOverrides((current) => {
+        const next = new Map(current);
+        next.delete(assignmentId);
+        return next;
+      });
+      if (!result.ok) {
+        toast.error(result.message);
+      } else {
+        toast.success("Status bijgewerkt.");
+        router.refresh();
+      }
+    },
+    [router],
+  );
+
+  const effectiveAssignments = useMemo(
+    () =>
+      statusOverrides.size === 0
+        ? assignments
+        : assignments.map((assignment) =>
+            statusOverrides.has(assignment.id)
+              ? { ...assignment, status: statusOverrides.get(assignment.id)! }
+              : assignment,
+          ),
+    [assignments, statusOverrides],
+  );
+
   const runBulkAction = useCallback(
     async (previousState: typeof initialBulkActionState, formData: FormData) => {
       const nextState = await updateAssignmentsBulk(previousState, formData);
@@ -167,7 +184,7 @@ export function AssignmentsScreen({
     filters.mine,
     filters.qcOverdue,
   ].filter(Boolean).length;
-  const groups = groupAssignments(assignments, group, filters);
+  const groups = groupAssignments(effectiveAssignments, group, filters);
 
   const clearFilters = () =>
     replaceParams({
@@ -343,56 +360,39 @@ export function AssignmentsScreen({
           </div>
         </section>
 
+        <AttentionStrip attention={attention} />
+
         <div
           className={cn(
             "pt-4 transition-opacity",
             isNavigating && "pointer-events-none opacity-60",
           )}
         >
-          {assignments.length === 0 ? (
-            <div className="border border-dashed px-6 py-14 text-center">
+          {effectiveAssignments.length === 0 ? (
+            <div className="rounded-md border border-dashed border-border px-6 py-14 text-center">
               <h2 className="font-medium">Geen opdrachten gevonden</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Pas de filters aan of toon ook het archief of de backlog.
               </p>
             </div>
           ) : view === "board" ? (
-            <div className="overflow-x-auto pb-3">
-              <div className="flex min-w-max items-start gap-3">
-                {groups.map((assignmentGroup) => (
-                  <section className="w-[330px] border bg-background" key={assignmentGroup.key}>
-                    <GroupHeader assignmentGroup={assignmentGroup} group={group} />
-                    <div>
-                      {assignmentGroup.assignments.length > 0 ? (
-                        assignmentGroup.assignments.map((assignment) => (
-                          <AssignmentCard
-                            assignment={assignment}
-                            daysOpen={getDaysOpen(assignment, today)}
-                            goalLabels={goalLabels}
-                            key={assignment.id}
-                            needsQcAttention={
-                              assignment.status === "qc" &&
-                              getDaysOpen(assignment, today) > qcReminderDays
-                            }
-                            onSelect={toggleSelection}
-                            selectable={canBulkManage}
-                            selected={selectedIds.has(assignment.id)}
-                          />
-                        ))
-                      ) : (
-                        <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-                          Geen opdrachten
-                        </p>
-                      )}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <CompactTable
-              assignments={assignments}
+            <Board
+              assignments={effectiveAssignments}
               canBulkManage={canBulkManage}
+              editItemsByAssignment={editItemsByAssignment}
+              goalLabels={goalLabels}
+              isCoordinator={canBulkManage}
+              onSelect={toggleSelection}
+              onStatusChange={handleStatusChange}
+              qcReminderDays={qcReminderDays}
+              selectedIds={selectedIds}
+              today={today}
+            />
+          ) : (
+            <VirtualizedTable
+              allAssignments={effectiveAssignments}
+              canBulkManage={canBulkManage}
+              editItemsByAssignment={editItemsByAssignment}
               goalLabels={goalLabels}
               groups={groups}
               group={group}
@@ -408,7 +408,7 @@ export function AssignmentsScreen({
         {canBulkManage && selectedIds.size > 0 ? (
           <form
             action={bulkAction}
-            className="sticky bottom-3 z-20 mt-4 flex flex-col gap-2 border bg-background p-3 sm:flex-row sm:items-end"
+            className="fixed inset-x-0 bottom-4 z-20 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-lg sm:flex-row sm:items-end"
           >
             {[...selectedIds].map((id) => (
               <input key={id} name="assignmentId" type="hidden" value={id} />
@@ -479,27 +479,6 @@ function groupAssignments(
   }));
 }
 
-function GroupHeader({
-  assignmentGroup,
-  group,
-}: {
-  assignmentGroup: AssignmentGroup;
-  group: GroupMode;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
-      <div className="flex items-center gap-2">
-        {group === "status" ? (
-          <StatusBadge status={assignmentGroup.label as AssignmentListItem["status"]} />
-        ) : (
-          <span className="text-sm font-medium">{assignmentGroup.label}</span>
-        )}
-      </div>
-      <CountPill value={assignmentGroup.assignments.length} />
-    </div>
-  );
-}
-
 // A count is not a status, so it gets neither Chip nor Badge (both carry
 // semantic meaning) — just the mono system voice on a muted surface.
 function CountPill({ value }: { value: number }) {
@@ -507,146 +486,6 @@ function CountPill({ value }: { value: number }) {
     <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
       {value}
     </span>
-  );
-}
-
-function CompactTable({
-  assignments,
-  groups,
-  group,
-  goalLabels,
-  canBulkManage,
-  selectedIds,
-  setSelectedIds,
-  toggleSelection,
-  qcReminderDays,
-  today,
-}: {
-  assignments: AssignmentListItem[];
-  groups: AssignmentGroup[];
-  group: GroupMode;
-  goalLabels: Map<string, string>;
-  canBulkManage: boolean;
-  selectedIds: Set<string>;
-  setSelectedIds: (ids: Set<string>) => void;
-  toggleSelection: (id: string, checked: boolean) => void;
-  qcReminderDays: number;
-  today: string;
-}) {
-  const allSelected = assignments.length > 0 && selectedIds.size === assignments.length;
-
-  return (
-    <div className="overflow-x-auto border">
-      <table className="w-full min-w-[780px] border-collapse text-sm">
-        <thead className="border-b bg-muted/30 text-left text-xs font-medium text-muted-foreground">
-          <tr>
-            {canBulkManage ? (
-              <th className="w-10 px-3 py-2">
-                <input
-                  aria-label="Selecteer alle zichtbare opdrachten"
-                  checked={allSelected}
-                  className="size-3.5 accent-[#1D9E75]"
-                  onChange={(event) =>
-                    setSelectedIds(
-                      event.target.checked
-                        ? new Set(assignments.map(({ id }) => id))
-                        : new Set(),
-                    )
-                  }
-                  type="checkbox"
-                />
-              </th>
-            ) : null}
-            <th className="px-3 py-2">Opdracht</th>
-            <th className="w-44 px-3 py-2">Workflow</th>
-            <th className="w-40 px-3 py-2">Editor</th>
-            <th className="w-20 px-3 py-2 text-right">Open</th>
-          </tr>
-        </thead>
-        {groups.map((assignmentGroup) => (
-          <tbody key={assignmentGroup.key}>
-            <tr className="border-y bg-muted/20">
-              <th className="px-3 py-1.5 text-left text-xs font-medium" colSpan={canBulkManage ? 5 : 4}>
-                <span className="flex items-center gap-2">
-                  {group === "status" ? (
-                    <StatusBadge status={assignmentGroup.label as AssignmentListItem["status"]} />
-                  ) : (
-                    assignmentGroup.label
-                  )}
-                  <span className="text-muted-foreground">{assignmentGroup.assignments.length}</span>
-                </span>
-              </th>
-            </tr>
-            {assignmentGroup.assignments.map((assignment) => {
-              const days = getDaysOpen(assignment, today);
-              const needsQcAttention = assignment.status === "qc" && days > qcReminderDays;
-              return (
-                <tr
-                  className={cn(
-                    "border-b last:border-b-0 hover:bg-muted/30",
-                    selectedIds.has(assignment.id) && "bg-teal-50/70",
-                    needsQcAttention && "bg-amber-50/70 hover:bg-amber-50",
-                  )}
-                  key={assignment.id}
-                >
-                  {canBulkManage ? (
-                    <td className="px-3 py-2.5">
-                      <input
-                        aria-label={`Selecteer opdracht ${assignment.accoId}`}
-                        checked={selectedIds.has(assignment.id)}
-                        className="size-3.5 accent-[#1D9E75]"
-                        onChange={(event) => toggleSelection(assignment.id, event.target.checked)}
-                        type="checkbox"
-                      />
-                    </td>
-                  ) : null}
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{assignment.accoId}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {assignment.rentalExpertName ?? "Onbekend"}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {assignment.photoCount} {assignment.photoCount === 1 ? "foto" : "foto's"}
-                      {assignment.goals.length > 0
-                        ? ` · ${assignment.goals
-                            .map((goal) => goalLabels.get(goal) ?? goal)
-                            .join(", ")}`
-                        : ""}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <StatusBadge status={assignment.status} />
-                      <PriorityBadge priority={assignment.priority} />
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <EditorIdentity name={assignment.editorName ?? "Niet toegewezen"} />
-                  </td>
-                  <td className="px-3 py-2.5 text-right text-xs tabular-nums text-muted-foreground">
-                    {needsQcAttention ? <span className="mr-1 text-amber-700">!</span> : null}
-                    {days}d
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        ))}
-      </table>
-    </div>
-  );
-}
-
-function EditorIdentity({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="grid size-5 place-items-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-700">
-        {name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}
-      </span>
-      <span className="truncate text-xs text-muted-foreground">{name}</span>
-    </div>
   );
 }
 
@@ -700,7 +539,7 @@ function QuickFilter({
       className={cn(
         "h-8 border px-2.5 text-xs font-medium transition-colors",
         active
-          ? "border-primary bg-teal-50 text-primary"
+          ? "border-primary bg-accent text-primary"
           : "bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground",
         disabled && "cursor-not-allowed opacity-50",
       )}
@@ -726,7 +565,7 @@ function Toggle({
     <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
       <input
         checked={checked}
-        className="size-3.5 accent-[#1D9E75]"
+        className="size-3.5 accent-primary"
         onChange={(event) => onChange(event.target.checked)}
         type="checkbox"
       />

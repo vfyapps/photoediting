@@ -17,6 +17,11 @@ export const priorities = [
 ] as const satisfies readonly Enums<"priority_level">[];
 
 export type AssignmentStatus = (typeof assignmentStatuses)[number];
+
+// De vier kolommen die het bord toont: zonder backlog en archief, conform
+// AGENTS.md Screen 2 ("Bordweergave als default... zonder backlog en archief").
+export const boardStatuses = ["new", "in_process", "qc", "denied"] as const;
+export type BoardStatus = (typeof boardStatuses)[number];
 export type Priority = (typeof priorities)[number];
 export type ViewMode = "board" | "table";
 export type GroupMode = "status" | "editor";
@@ -47,6 +52,24 @@ export type AssignmentListItem = {
   photoCount: number;
   goals: string[];
 };
+
+export type EditItem = {
+  id: string;
+  assignmentId: string;
+  goalCode: string;
+  photoNumber: number;
+  done: boolean;
+};
+
+export function toEditItem(row: Tables<"edit_items">): EditItem {
+  return {
+    id: row.id,
+    assignmentId: row.assignment_id,
+    goalCode: row.goal_code,
+    photoNumber: row.photo_number,
+    done: row.done,
+  };
+}
 
 export type EditorOption = Pick<Tables<"editors">, "id" | "name">;
 export type RentalExpertOption = Pick<Tables<"rental_experts">, "id" | "name">;

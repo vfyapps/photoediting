@@ -1,12 +1,15 @@
 import { AssignmentsScreen } from "@/components/assignments/assignments-screen";
+import type { AttentionData } from "@/components/assignments/attention-strip";
 import {
   type AssignmentFilters,
   type AssignmentListItem,
   type AssignmentStatus,
+  type EditItem,
   type GroupMode,
   isAssignmentStatus,
   isPriority,
   toAssignmentListItem,
+  toEditItem,
   type ViewMode,
 } from "@/lib/assignments";
 import { createClient } from "@/lib/supabase/server";
@@ -53,15 +56,17 @@ function parseGroup(value: string): GroupMode {
   return value === "editor" ? "editor" : "status";
 }
 
-function daysOpen(assignment: AssignmentListItem, today: string) {
-  const start = assignment.requestDate ?? assignment.createdAt;
-  const end = assignment.completedDate ?? today;
+function daysBetween(start: string, end: string) {
   const startDate = new Date(`${start.slice(0, 10)}T00:00:00Z`);
   const endDate = new Date(`${end.slice(0, 10)}T00:00:00Z`);
   return Math.max(
     0,
     Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000),
   );
+}
+
+function daysOpen(assignment: AssignmentListItem, today: string) {
+  return daysBetween(assignment.requestDate ?? assignment.createdAt, assignment.completedDate ?? today);
 }
 
 export default async function AssignmentsPage({
@@ -125,21 +130,47 @@ export default async function AssignmentsPage({
   if (filters.goal) assignmentsQuery = assignmentsQuery.contains("goals", [filters.goal]);
   if (filters.search) assignmentsQuery = assignmentsQuery.ilike("acco_id", `%${filters.search}%`);
 
-  const [assignmentsResult, expertsResult, goalsResult, reminderResult, roleResult] =
-    await Promise.all([
-      assignmentsQuery,
-      supabase.from("rental_experts").select("id, name").order("name"),
-      supabase
-        .from("editing_goals")
-        .select("code, label_nl")
-        .order("sort_order"),
-      supabase
-        .from("app_settings")
-        .select("value")
-        .eq("key", "qc_reminder_days")
-        .maybeSingle(),
-      supabase.rpc("current_app_role"),
-    ]);
+  const [
+    assignmentsResult,
+    expertsResult,
+    goalsResult,
+    reminderResult,
+    roleResult,
+    calloutThresholdResult,
+    openAssignmentsResult,
+    issueFrequencyResult,
+    publishedIssueGuidelinesResult,
+  ] = await Promise.all([
+    assignmentsQuery,
+    supabase.from("rental_experts").select("id, name").order("name"),
+    supabase
+      .from("editing_goals")
+      .select("code, label_nl")
+      .order("sort_order"),
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "qc_reminder_days")
+      .maybeSingle(),
+    supabase.rpc("current_app_role"),
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "qc_issue_callout_threshold")
+      .maybeSingle(),
+    // Los van de actieve filters: de attentiestrook telt altijd over al het
+    // open werk, niet over wat de gebruiker toevallig heeft ingesteld.
+    supabase
+      .from("v_assignments")
+      .select("id, status, priority, editor_name, request_date, date_completed, created_at")
+      .in("status", openStatuses),
+    supabase.from("v_qc_issue_frequency").select("code, label_nl, aantal"),
+    supabase
+      .from("guidelines")
+      .select("qc_issue_code")
+      .eq("is_published", true)
+      .not("qc_issue_code", "is", null),
+  ]);
 
   const firstError = [
     editorsResult.error,
@@ -182,16 +213,74 @@ export default async function AssignmentsPage({
   const view = parseView(first(params.view));
   const group = parseGroup(first(params.group));
 
+  const editItemsResult =
+    assignments.length > 0
+      ? await supabase
+          .from("edit_items")
+          .select("*")
+          .in(
+            "assignment_id",
+            assignments.map((assignment) => assignment.id),
+          )
+      : { data: [] as const, error: null };
+  const editItemsByAssignment = new Map<string, EditItem[]>();
+  (editItemsResult.data ?? []).forEach((row) => {
+    const item = toEditItem(row);
+    editItemsByAssignment.set(item.assignmentId, [
+      ...(editItemsByAssignment.get(item.assignmentId) ?? []),
+      item,
+    ]);
+  });
+
+  const openRows = (openAssignmentsResult.data ?? []).filter(
+    (row): row is NonNullable<typeof row> & { id: string; status: NonNullable<typeof row.status> } =>
+      Boolean(row.id && row.status),
+  );
+  const qcOverdueCount = openRows.filter((row) => {
+    if (row.status !== "qc") return false;
+    const start = row.request_date ?? row.created_at;
+    if (!start) return false;
+    return daysBetween(start, row.date_completed ?? today) > qcReminderDays;
+  }).length;
+  const highPriorityUnassignedCount = openRows.filter(
+    (row) => row.priority === "high" && !row.editor_name,
+  ).length;
+
+  const calloutThreshold = Number.parseInt(calloutThresholdResult.data?.value ?? "", 10) || 3;
+  const publishedIssueCodes = new Set(
+    (publishedIssueGuidelinesResult.data ?? [])
+      .map((row) => row.qc_issue_code)
+      .filter((code): code is string => Boolean(code)),
+  );
+  const topIssue = (issueFrequencyResult.data ?? [])
+    .filter(
+      (row): row is { code: string; label_nl: string; aantal: number } =>
+        Boolean(row.code && row.label_nl) &&
+        (row.aantal ?? 0) >= calloutThreshold &&
+        !publishedIssueCodes.has(row.code!),
+    )
+    .sort((left, right) => right.aantal - left.aantal)[0];
+
+  const attention: AttentionData = {
+    qcOverdueCount,
+    highPriorityUnassignedCount,
+    topIssue: topIssue
+      ? { code: topIssue.code, label: topIssue.label_nl, count: topIssue.aantal }
+      : null,
+  };
+
   return (
     <AssignmentsScreen
       assignments={assignments}
       assignableEditors={(editorsResult.data ?? [])
         .filter((editor) => editor.is_active)
         .map(({ id, name }) => ({ id, name }))}
+      attention={attention}
       canBulkManage={
         roleResult.data === "admin" || roleResult.data === "coordinator"
       }
       currentEditorName={currentEditorName ?? null}
+      editItemsByAssignment={editItemsByAssignment}
       editors={(editorsResult.data ?? []).map(({ id, name }) => ({ id, name }))}
       filters={filters}
       goals={goalsResult.data ?? []}
