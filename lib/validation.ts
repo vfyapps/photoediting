@@ -150,6 +150,8 @@ const settingKeys = [
   "qc_issue_callout_threshold",
   "magnific_base_url",
   "ares_base_url",
+  "avoided_shoot_cost_eur",
+  "monthly_editing_cost_eur",
 ] as const;
 
 export const updateSettingSchema = z.object({
@@ -169,6 +171,48 @@ export const upsertEditingGoalSchema = z.object({
   description: z.string().trim().max(500).nullable(),
   isActive: z.boolean(),
   sortOrder: z.number().int(),
+});
+
+// ── Ares-import (V3-WP3) ─────────────────────────────────────────────────────
+
+const allowedAresMimeTypes = [
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/zip", // .xlsx wordt door sommige browsers als zip herkend
+];
+const maxAresFileBytes = 20 * 1024 * 1024;
+
+export const uploadAresFileSchema = z.object({
+  file: z
+    .instanceof(File, { message: "Kies een .xlsx-bestand" })
+    .refine((file) => file.size > 0, "Bestand is leeg")
+    .refine((file) => file.size <= maxAresFileBytes, "Bestand mag maximaal 20 MB zijn")
+    .refine(
+      (file) => allowedAresMimeTypes.includes(file.type) || file.name.toLowerCase().endsWith(".xlsx"),
+      "Alleen .xlsx-bestanden",
+    ),
+});
+
+const importCandidateSchema = z.object({
+  rowKey: z.string().min(1),
+  accoId: z.string().min(1),
+  priority: z.enum(["low", "medium", "high"]),
+  expertAlias: z.string(),
+  requestDate: z.string().nullable(),
+});
+
+export const commitAresImportSchema = z.object({
+  fileName: z.string().min(1).max(255),
+  candidates: z.array(importCandidateSchema).min(1, "Selecteer minstens één opdracht").max(1000),
+});
+
+export const upsertAresExpertAliasSchema = z.object({
+  alias: z.string().trim().min(1, "Alias is verplicht").max(100),
+  rentalExpertId: z.string().uuid("Kies een verhuurexpert"),
+});
+
+export const deleteAresExpertAliasSchema = z.object({
+  alias: z.string().trim().min(1),
 });
 
 export const upsertQcIssueTypeSchema = z.object({

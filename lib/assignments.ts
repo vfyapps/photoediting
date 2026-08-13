@@ -38,6 +38,7 @@ export type AssignmentFilters = {
   mine: boolean;
   qcOverdue: boolean;
   qcIssue: string;
+  missingPhotos: boolean;
 };
 
 export type AssignmentListItem = {
@@ -88,6 +89,7 @@ export type AssignmentDetail = {
   rentalExpertName: string | null;
   photoCount: number;
   goals: string[];
+  importGoalCode: string | null;
 };
 
 export function toAssignmentDetail(row: Tables<"v_assignments">): AssignmentDetail | null {
@@ -111,6 +113,7 @@ export function toAssignmentDetail(row: Tables<"v_assignments">): AssignmentDeta
     rentalExpertName: row.rental_expert_name,
     photoCount: row.photo_count ?? 0,
     goals: row.goals ?? [],
+    importGoalCode: row.import_goal_code,
   };
 }
 

@@ -11,6 +11,7 @@ const tabs = [
   { href: "/beheer/editors", label: "Editors & experts" },
   { href: "/beheer/instellingen", label: "Instellingen" },
   { href: "/beheer/referentiedata", label: "Referentiedata" },
+  { href: "/beheer/import", label: "Ares-import" },
 ];
 
 export function BeheerTabs() {

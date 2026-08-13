@@ -46,6 +46,7 @@ function parseFilters(params: SearchParams): AssignmentFilters {
     mine: first(params.mine) === "1",
     qcOverdue: first(params.qc_overdue) === "1",
     qcIssue: first(params.qc_issue).slice(0, 100),
+    missingPhotos: first(params.missing_photos) === "1",
   };
 }
 
@@ -220,13 +221,16 @@ export default async function AssignmentsPage({
   const allAssignments = (assignmentsResult.data ?? [])
     .map(toAssignmentListItem)
     .filter((assignment): assignment is AssignmentListItem => assignment !== null);
-  const assignments = filters.qcOverdue
+  const qcFiltered = filters.qcOverdue
     ? allAssignments.filter(
         (assignment) =>
           assignment.status === "qc" &&
           daysOpen(assignment, today) > qcReminderDays,
       )
     : allAssignments;
+  const assignments = filters.missingPhotos
+    ? qcFiltered.filter((assignment) => assignment.photoCount === 0)
+    : qcFiltered;
   const view = parseView(first(params.view));
   const group = parseGroup(first(params.group));
 
@@ -319,6 +323,7 @@ export default async function AssignmentsPage({
         filters.mine ? "mijn" : "alle",
         filters.qcOverdue ? "qc-vertraagd" : "qc-alles",
         filters.qcIssue,
+        filters.missingPhotos ? "zonder-fotos" : "met-fotos",
         view,
         group,
       ].join("|")}

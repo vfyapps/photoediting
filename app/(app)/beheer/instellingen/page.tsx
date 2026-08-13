@@ -9,6 +9,8 @@ const fieldOrder = [
   "qc_issue_callout_threshold",
   "magnific_base_url",
   "ares_base_url",
+  "avoided_shoot_cost_eur",
+  "monthly_editing_cost_eur",
 ] as const;
 
 export default async function BeheerInstellingenPage() {

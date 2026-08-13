@@ -15,6 +15,8 @@ const fieldLabels: Record<string, string> = {
   qc_issue_callout_threshold: "Drempel QC-callout",
   magnific_base_url: "Magnific-basis-URL",
   ares_base_url: "Ares-basis-URL",
+  avoided_shoot_cost_eur: "Vermeden kosten per fotoshoot (€)",
+  monthly_editing_cost_eur: "Maandkosten AI-editing (€)",
 };
 
 type Setting = { key: string; value: string | null; description: string | null };

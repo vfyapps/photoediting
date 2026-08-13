@@ -150,9 +150,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ares_expert_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          rental_expert_id: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          rental_expert_id: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          rental_expert_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ares_expert_aliases_rental_expert_id_fkey"
+            columns: ["rental_expert_id"]
+            isOneToOne: false
+            referencedRelation: "rental_experts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           acco_id: string
+          ares_row_key: string | null
           briefing: string | null
           created_at: string
           created_by: string | null
@@ -160,16 +187,19 @@ export type Database = {
           date_completed: string | null
           editor_id: string | null
           id: string
+          import_goal_code: string | null
           legacy_notes: string | null
           magnific_url: string | null
           priority: Database["public"]["Enums"]["priority_level"]
           rental_expert_id: string | null
           request_date: string | null
+          source: string
           status: Database["public"]["Enums"]["assignment_status"]
           updated_at: string
         }
         Insert: {
           acco_id: string
+          ares_row_key?: string | null
           briefing?: string | null
           created_at?: string
           created_by?: string | null
@@ -177,16 +207,19 @@ export type Database = {
           date_completed?: string | null
           editor_id?: string | null
           id?: string
+          import_goal_code?: string | null
           legacy_notes?: string | null
           magnific_url?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           rental_expert_id?: string | null
           request_date?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["assignment_status"]
           updated_at?: string
         }
         Update: {
           acco_id?: string
+          ares_row_key?: string | null
           briefing?: string | null
           created_at?: string
           created_by?: string | null
@@ -194,11 +227,13 @@ export type Database = {
           date_completed?: string | null
           editor_id?: string | null
           id?: string
+          import_goal_code?: string | null
           legacy_notes?: string | null
           magnific_url?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           rental_expert_id?: string | null
           request_date?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["assignment_status"]
           updated_at?: string
         }
@@ -216,6 +251,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "editors"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_import_goal_code_fkey"
+            columns: ["import_goal_code"]
+            isOneToOne: false
+            referencedRelation: "editing_goals"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "assignments_import_goal_code_fkey"
+            columns: ["import_goal_code"]
+            isOneToOne: false
+            referencedRelation: "v_goal_usage"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "assignments_rental_expert_id_fkey"
@@ -466,6 +515,41 @@ export type Database = {
           },
         ]
       }
+      import_runs: {
+        Row: {
+          created_at: string
+          created_count: number
+          file_name: string
+          id: string
+          imported_by: string | null
+          skipped_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_count?: number
+          file_name: string
+          id?: string
+          imported_by?: string | null
+          skipped_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_count?: number
+          file_name?: string
+          id?: string
+          imported_by?: string | null
+          skipped_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_runs_imported_by_fkey"
+            columns: ["imported_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qc_findings: {
         Row: {
           comment: string | null
@@ -682,6 +766,7 @@ export type Database = {
           editor_name: string | null
           goals: string[] | null
           id: string | null
+          import_goal_code: string | null
           last_decision: Database["public"]["Enums"]["qc_decision"] | null
           legacy_notes: string | null
           magnific_url: string | null
@@ -690,10 +775,26 @@ export type Database = {
           rental_expert_name: string | null
           request_date: string | null
           rounds: number | null
+          source: string | null
           status: Database["public"]["Enums"]["assignment_status"] | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assignments_import_goal_code_fkey"
+            columns: ["import_goal_code"]
+            isOneToOne: false
+            referencedRelation: "editing_goals"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "assignments_import_goal_code_fkey"
+            columns: ["import_goal_code"]
+            isOneToOne: false
+            referencedRelation: "v_goal_usage"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       v_cycle_time: {
         Row: {

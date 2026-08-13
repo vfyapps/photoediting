@@ -84,6 +84,12 @@ export function AssignmentDetailScreen({
             <h1 className="text-2xl">{assignment.accoId}</h1>
             <Chip status={statusChip[assignment.status]}>{statusLabelsNl[assignment.status]}</Chip>
             <Badge status={priorityBadge[assignment.priority]}>{priorityLabels[assignment.priority]}</Badge>
+            {assignment.importGoalCode && !assignment.goals.includes(assignment.importGoalCode) ? (
+              <Badge status="neutral">
+                Doel: {goals.find((g) => g.code === assignment.importGoalCode)?.label_nl ?? assignment.importGoalCode}{" "}
+                (nog geen foto&apos;s)
+              </Badge>
+            ) : null}
           </div>
           <MagnificButton assignmentId={assignment.id} baseUrl={magnificBaseUrl} url={assignment.magnificUrl} />
         </div>

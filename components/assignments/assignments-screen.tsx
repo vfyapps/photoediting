@@ -184,6 +184,7 @@ export function AssignmentsScreen({
     filters.mine,
     filters.qcOverdue,
     filters.qcIssue,
+    filters.missingPhotos,
   ].filter(Boolean).length;
   const groups = groupAssignments(effectiveAssignments, group, filters);
 
@@ -198,6 +199,7 @@ export function AssignmentsScreen({
       mine: null,
       qc_overdue: null,
       qc_issue: null,
+      missing_photos: null,
     });
 
   return (
@@ -266,6 +268,13 @@ export function AssignmentsScreen({
                   qc_overdue: filters.qcOverdue ? null : "1",
                   status: filters.qcOverdue ? null : "qc",
                 })
+              }
+            />
+            <QuickFilter
+              active={filters.missingPhotos}
+              label="Wacht op fotonummers"
+              onClick={() =>
+                replaceParams({ missing_photos: filters.missingPhotos ? null : "1" })
               }
             />
             {!currentEditorName ? (
