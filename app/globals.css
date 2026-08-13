@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css"; /* provides animate-in/out utilities used by Dialog */
+@plugin "@tailwindcss/typography"; /* long-form markdown op de Academy-modules, AGENTS.md's "kalm document" */
 
 /*
  * VfY 2.0 design tokens — Tailwind v4, CSS-first config.

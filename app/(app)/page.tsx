@@ -156,7 +156,7 @@ export default async function AssignmentsPage({
     calloutThresholdResult,
     openAssignmentsResult,
     issueFrequencyResult,
-    publishedIssueGuidelinesResult,
+    issueGuidelinesResult,
   ] = await Promise.all([
     assignmentsQuery,
     supabase.from("rental_experts").select("id, name").order("name"),
@@ -182,11 +182,11 @@ export default async function AssignmentsPage({
       .select("id, status, priority, editor_name, request_date, date_completed, created_at")
       .in("status", openStatuses),
     supabase.from("v_qc_issue_frequency").select("code, label_nl, aantal"),
-    supabase
-      .from("guidelines")
-      .select("qc_issue_code")
-      .eq("is_published", true)
-      .not("qc_issue_code", "is", null),
+    // Geen is_published-filter: RLS (read_pub_guidelines) laat een editor
+    // toch alleen gepubliceerde rijen zien en een coordinator ook het
+    // concept, dus de callout linkt voor iedereen naar wat die persoon
+    // écht mag openen.
+    supabase.from("guidelines").select("slug, qc_issue_code").not("qc_issue_code", "is", null),
   ]);
 
   const firstError = [
@@ -264,17 +264,17 @@ export default async function AssignmentsPage({
   ).length;
 
   const calloutThreshold = Number.parseInt(calloutThresholdResult.data?.value ?? "", 10) || 3;
-  const publishedIssueCodes = new Set(
-    (publishedIssueGuidelinesResult.data ?? [])
-      .map((row) => row.qc_issue_code)
-      .filter((code): code is string => Boolean(code)),
+  // Eén rij per qc_issue_code (er hoort er, dankzij de "geen duplicaat
+  // concept"-check in submitQcReview, sowieso maar één te zijn per code).
+  const moduleSlugByIssueCode = new Map(
+    (issueGuidelinesResult.data ?? [])
+      .filter((row): row is { slug: string; qc_issue_code: string } => Boolean(row.qc_issue_code))
+      .map((row) => [row.qc_issue_code, row.slug]),
   );
   const topIssue = (issueFrequencyResult.data ?? [])
     .filter(
       (row): row is { code: string; label_nl: string; aantal: number } =>
-        Boolean(row.code && row.label_nl) &&
-        (row.aantal ?? 0) >= calloutThreshold &&
-        !publishedIssueCodes.has(row.code!),
+        Boolean(row.code && row.label_nl) && (row.aantal ?? 0) >= calloutThreshold,
     )
     .sort((left, right) => right.aantal - left.aantal)[0];
 
@@ -282,7 +282,12 @@ export default async function AssignmentsPage({
     qcOverdueCount,
     highPriorityUnassignedCount,
     topIssue: topIssue
-      ? { code: topIssue.code, label: topIssue.label_nl, count: topIssue.aantal }
+      ? {
+          code: topIssue.code,
+          label: topIssue.label_nl,
+          count: topIssue.aantal,
+          moduleSlug: moduleSlugByIssueCode.get(topIssue.code) ?? null,
+        }
       : null,
   };
 

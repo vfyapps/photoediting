@@ -62,3 +62,25 @@ export const submitQcReviewSchema = z.object({
   decision: z.enum(["approved", "denied"], { error: "Ongeldige beslissing" }),
   findings: z.array(qcFindingSchema).max(50, "Maximaal 50 bevindingen per ronde"),
 });
+
+const slugPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+export const upsertGuidelineSchema = z.object({
+  id: z.string().uuid().nullable(),
+  slug: z
+    .string()
+    .trim()
+    .min(3, "Slug moet minstens 3 tekens zijn")
+    .max(150)
+    .regex(slugPattern, "Slug mag alleen kleine letters, cijfers en koppeltekens bevatten"),
+  title: z.string().trim().min(1, "Titel is verplicht").max(200),
+  track: z.enum(["onboarding", "goal", "tips"], { error: "Kies een track" }),
+  goalCode: z.string().nullable(),
+  bodyMd: z.string().trim().min(1, "De inhoud mag niet leeg zijn"),
+  isPublished: z.boolean(),
+  sortOrder: z.number().int(),
+});
+
+export const markGuidelineReadSchema = z.object({
+  guidelineId: z.string().uuid("Ongeldige module"),
+});

@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowRight, Clock, UserX } from "lucide-react";
 export type AttentionData = {
   qcOverdueCount: number;
   highPriorityUnassignedCount: number;
-  topIssue: { code: string; label: string; count: number } | null;
+  topIssue: { code: string; label: string; count: number; moduleSlug: string | null } | null;
 };
 
 /**
@@ -50,7 +50,7 @@ export function AttentionStrip({ attention }: { attention: AttentionData }) {
       {topIssue ? (
         <Link
           className="group flex min-w-72 flex-1 items-center gap-3 rounded-md border border-info-tint bg-info-tint px-3 py-2.5 text-sm transition-[transform,box-shadow] duration-fast ease-standard hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-          href={`/academy?issue=${encodeURIComponent(topIssue.code)}`}
+          href={topIssue.moduleSlug ? `/academy/${topIssue.moduleSlug}` : "/academy"}
         >
           <AlertTriangle aria-hidden="true" className="size-4 shrink-0 text-info" />
           <span className="min-w-0 flex-1">
@@ -61,7 +61,7 @@ export function AttentionStrip({ attention }: { attention: AttentionData }) {
             </span>
           </span>
           <span className="flex shrink-0 items-center gap-1 font-medium text-info">
-            Module openen
+            {topIssue.moduleSlug ? "Module openen" : "Naar Academy"}
             <ArrowRight aria-hidden="true" className="size-3.5 transition-transform group-hover:translate-x-0.5" />
           </span>
         </Link>
