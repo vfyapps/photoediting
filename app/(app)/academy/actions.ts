@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { markGuidelineReadSchema, upsertGuidelineSchema } from "@/lib/validation";
+import {
+  deleteGuidelineExampleSchema,
+  markGuidelineReadSchema,
+  upsertGuidelineSchema,
+  uploadGuidelineExampleSchema,
+} from "@/lib/validation";
 
 export type AcademyActionResult =
   | { ok: true; slug?: string }
@@ -85,4 +90,110 @@ export async function upsertGuideline(input: {
   revalidatePath("/academy");
   revalidatePath(`/academy/${data.slug}`);
   return { ok: true, slug: data.slug };
+}
+
+const mimeExtensions: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+/**
+ * Uploadt een goed/fout-voorbeeld bij een module. Zowel de bucket-policy
+ * (write_guideline_objects) als deze action controleren op coordinator/admin
+ * - de action geeft alleen de nette Nederlandse melding.
+ */
+export async function uploadGuidelineExample(input: {
+  guidelineId: string;
+  isGood: boolean;
+  caption: string | null;
+  file: File;
+}): Promise<AcademyActionResult> {
+  const parsed = uploadGuidelineExampleSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Ongeldige invoer" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: guideline } = await supabase
+    .from("guidelines")
+    .select("slug")
+    .eq("id", parsed.data.guidelineId)
+    .maybeSingle();
+  if (!guideline) return { ok: false, message: "Module niet gevonden." };
+
+  const { count } = await supabase
+    .from("guideline_examples")
+    .select("id", { count: "exact", head: true })
+    .eq("guideline_id", parsed.data.guidelineId);
+
+  const extension = mimeExtensions[parsed.data.file.type] ?? "jpg";
+  const storagePath = `${parsed.data.guidelineId}/${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("guidelines")
+    .upload(storagePath, parsed.data.file, { contentType: parsed.data.file.type });
+  if (uploadError) {
+    return {
+      ok: false,
+      message:
+        uploadError.message.includes("row-level security") || uploadError.message.includes("policy")
+          ? "Alleen de coördinator kan lesmateriaal uploaden."
+          : "De afbeelding kon niet worden geüpload. Probeer opnieuw.",
+    };
+  }
+
+  const { error: insertError } = await supabase.from("guideline_examples").insert({
+    guideline_id: parsed.data.guidelineId,
+    storage_path: storagePath,
+    caption: parsed.data.caption,
+    is_good: parsed.data.isGood,
+    sort_order: count ?? 0,
+  });
+  if (insertError) {
+    await supabase.storage.from("guidelines").remove([storagePath]);
+    return { ok: false, message: "De afbeelding is geüpload maar kon niet worden gekoppeld. Probeer opnieuw." };
+  }
+
+  revalidatePath(`/academy/${guideline.slug}/bewerken`);
+  revalidatePath(`/academy/${guideline.slug}`);
+  return { ok: true };
+}
+
+/**
+ * Verwijdert zowel het bestand in Storage als de rij - anders lekt de bucket
+ * vol met bestanden zonder verwijzing.
+ */
+export async function deleteGuidelineExample(exampleId: string): Promise<AcademyActionResult> {
+  const parsed = deleteGuidelineExampleSchema.safeParse({ exampleId });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Ongeldige aanvraag" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: example } = await supabase
+    .from("guideline_examples")
+    .select("storage_path, guidelines(slug)")
+    .eq("id", parsed.data.exampleId)
+    .maybeSingle();
+  if (!example) return { ok: false, message: "Voorbeeld niet gevonden." };
+
+  await supabase.storage.from("guidelines").remove([example.storage_path]);
+
+  const { error } = await supabase.from("guideline_examples").delete().eq("id", parsed.data.exampleId);
+  if (error) {
+    return {
+      ok: false,
+      message: error.code === "42501" ? "Alleen de coördinator kan lesmateriaal verwijderen." : "Verwijderen mislukt. Probeer opnieuw.",
+    };
+  }
+
+  const slug = (example.guidelines as { slug: string } | null)?.slug;
+  if (slug) {
+    revalidatePath(`/academy/${slug}/bewerken`);
+    revalidatePath(`/academy/${slug}`);
+  }
+  return { ok: true };
 }

@@ -84,3 +84,21 @@ export const upsertGuidelineSchema = z.object({
 export const markGuidelineReadSchema = z.object({
   guidelineId: z.string().uuid("Ongeldige module"),
 });
+
+const allowedExampleMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+const maxExampleFileBytes = 5 * 1024 * 1024;
+
+export const uploadGuidelineExampleSchema = z.object({
+  guidelineId: z.string().uuid("Ongeldige module"),
+  isGood: z.boolean(),
+  caption: z.string().trim().max(200).nullable(),
+  file: z
+    .instanceof(File, { message: "Kies een afbeelding" })
+    .refine((file) => file.size > 0, "Bestand is leeg")
+    .refine((file) => file.size <= maxExampleFileBytes, "Bestand mag maximaal 5 MB zijn")
+    .refine((file) => allowedExampleMimeTypes.includes(file.type), "Alleen JPG, PNG of WEBP"),
+});
+
+export const deleteGuidelineExampleSchema = z.object({
+  exampleId: z.string().uuid("Ongeldig voorbeeld"),
+});

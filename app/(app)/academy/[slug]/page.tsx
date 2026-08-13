@@ -42,12 +42,31 @@ export default async function AcademyModulePage({
       : Promise.resolve({ data: null }),
   ]);
 
-  const examples = (examplesResult.data ?? []).map((row) => ({
-    id: row.id,
-    isGood: row.is_good,
-    caption: row.caption,
-    url: supabase.storage.from("guidelines").getPublicUrl(row.storage_path).data.publicUrl,
-  }));
+  // De bucket 'guidelines' is bewust private (lesmateriaal over klantwoningen
+  // hoort niet publiek-indexeerbaar): elke afbeelding krijgt een tijdelijke
+  // signed URL in plaats van een permanente publieke link.
+  const exampleRows = examplesResult.data ?? [];
+  const signedUrls = exampleRows.length
+    ? await supabase.storage
+        .from("guidelines")
+        .createSignedUrls(
+          exampleRows.map((row) => row.storage_path),
+          3600,
+        )
+    : { data: null };
+  const urlByPath = new Map(
+    (signedUrls.data ?? [])
+      .filter((entry): entry is typeof entry & { signedUrl: string } => Boolean(entry.signedUrl))
+      .map((entry) => [entry.path, entry.signedUrl]),
+  );
+  const examples = exampleRows
+    .filter((row) => urlByPath.has(row.storage_path))
+    .map((row) => ({
+      id: row.id,
+      isGood: row.is_good,
+      caption: row.caption,
+      url: urlByPath.get(row.storage_path)!,
+    }));
 
   return (
     <ModuleScreen
