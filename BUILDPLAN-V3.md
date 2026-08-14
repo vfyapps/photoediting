@@ -329,85 +329,101 @@ de bestaande guards lopen zodat het auditspoor in `status_events` klopt.
 **Klaar wanneer:** een verkeerd geïmporteerde opdracht volledig te corrigeren is
 zonder SQL, en een verwijdering niet per ongeluk kan gebeuren.
 
-### V3-WP6 — Kaart van alle shoots *(nieuw, gevraagd 2026-08-14)*
+### V3-WP6 — Shootplanner-kaart *(nieuw; doel aangescherpt 2026-08-14)*
 
-Wouter: "op basis van de postcodes in acco id's een worldmap maken van alle
-shoots." Kan, en de data blijkt er uitzonderlijk geschikt voor. Vooraf gemeten,
-niet aangenomen:
+**Waarom (Wouter):** Ares heeft geen kaartfunctie, en bij het toewijzen van
+shoots aan fotografen is het lastig te zien welke shoots qua afstand te
+combineren zijn. De kaart is dus geen dashboardplaatje maar een
+**planningsinstrument**: fotografen met hun locatie erop, alle openstaande
+shoots eromheen, en afstand als het ordenende principe.
+
+**Scope-notitie.** Dit is fotografieplanning, niet AI-editing — een bewuste
+verbreding van de app, door de eigenaar gevraagd omdat het gat nu eenmaal in
+Ares zit. AGENTS.md regel 1 (geen ARES-integratie) blijft onverkort staan: alle
+data komt via dezelfde maandelijkse xlsx-import, er wordt niets live aan Ares
+gekoppeld. Toewijzen zelf blijft ook in Ares gebeuren; de kaart informeert die
+beslissing.
+
+Vooraf gemeten, niet aangenomen:
 
 | Bevinding | Waarde |
 |---|---|
 | Acco-id's die parsen als `LAND.POSTCODE.NR` | **954 van 954 (100%)** |
-| Postcodelengte per land | AT/BE/NL 4 cijfers, DE/FR 5 — klopt met de nationale conventie |
-| Unieke postcodes over xlsx + app samen | 280 (waarvan 3 `XX`-placeholders) |
-| **Al gegeocodeerd tegen GeoNames** | **279 van 280** |
-| Enige misser | `FR.83583` — een Cedex-code, staat niet in de GeoNames-basisset |
-| Shoots per postcode | max 51, mediaan 1 |
+| Unieke postcodes (xlsx + app), al gegeocodeerd tegen GeoNames | **279 van 280** (misser: `FR.83583`, een Cedex-code) |
+| **Openstaande shoot-rijen in de export** | **304** (Assigned 290, Readytoshoot 11, Signedup 2, Onhold 1) |
+| Daarvan geocodeerbaar | **297 van 304** (missers: de `XX.`-placeholders + `FR.83583`) |
+| Open shoots per land | AT 183, NL 83, FR 21, BE 8, DE 2, XX 7 |
+| Grootste open werkvoorraden | namirte 96, zilt 65, evelien 36, franksimone 26 |
 
-**Het is geen wereldkaart, en dat is belangrijk.** De bounding box van alle 279
-gegeocodeerde punten is 42,0°–54,1° NB en −1,4°–14,9° OL: Frankrijk-zuid tot de
-Oostzee. Op een wereldkaart beslaat dat **0,30% van het canvas** — 99,7% van het
-beeld zou leeg water en Siberië zijn, en alle 280 punten kruipen samen tot één
-onleesbare vlek. Het wordt dus een kaart van West- en Midden-Europa, met de
-projectie op die bounding box gefit. Zodra er ooit een woning buiten dat gebied
-bij komt, past de kaart zich aan (de projectie wordt uit de data berekend, niet
-hardcoded).
+**Beslispunt F — volledige adressen zijn niet nodig.** Wouter bood aan om naast
+het finance report ook een volledige acco-export met adressen te importeren.
+Mijn inschatting: **niet doen.** De beslissing die deze kaart ondersteunt —
+"welke shoots kan één fotograaf combineren?" — speelt op een schaal van 20 tot
+200 km. De fout van een postcode-centroid is 1 à 5 km, ruim binnen de marge.
+Een extra maandelijkse export is precies het soort handwerk dat deze app moet
+wegnemen, en plaatsnamen voor labels/tooltips levert GeoNames al gratis mee
+(`AT.5090` → Au, `NL.1131` → Volendam). Mocht er ooit een acco-level reden
+komen (bv. twee woningen in dezelfde postcode uit elkaar houden), dan kan de
+adres-export alsnog, zonder dat er iets weggegooid hoeft te worden.
 
-1. **Geocoding als vaste tabel, niet als runtime-API.** 280 postcodes is klein
-   genoeg om één keer op te zoeken en te committen. Bron: de GeoNames
-   postcode-dump (CC BY 4.0, gratis, per land) — geen API-key, geen rate limit,
-   geen netwerkafhankelijkheid in productie. Een script in `scripts/` genereert
-   `lib/postcode-coords.json` zodat het reproduceerbaar is; de app leest alleen
-   het resultaat.
-   *Nieuwe postcodes na een volgende import* die niet in de tabel staan, worden
-   niet stil genegeerd maar getoond als "niet gegeocodeerd" in het beheerscherm —
-   exact hetzelfde patroon als de onbekende expert-aliassen uit WP3.
-   `FR.83583` en de drie `XX`-codes zijn de eerste bewoners van dat lijstje.
+**Eén eerlijke beperking.** De kaart rekent hemelsbreed (haversine). In de
+Alpen kunnen twee dalen hemelsbreed 15 km en over de weg 90 km uit elkaar
+liggen. Een routing-API zou dat oplossen maar introduceert een externe
+afhankelijkheid met kosten en rate limits voor iets dat de coördinator, met de
+geografie zichtbaar op de kaart, zelf prima inschat. De afstanden worden
+daarom expliciet gelabeld als "hemelsbreed". Bewuste keuze, geen vergeten
+detail.
 
-2. **De import moet álle rijen bewaren, niet alleen de kandidaten.** Dit is de
-   echte architectuurvraag die deze functie oproept, en het antwoord verbetert
-   ook WP3. Nu gooit de import 769 van de 865 rijen weg. Gevolg: de app kent 342
-   acco-id's, de Ares-export 754, met maar 142 overlap — een kaart op alleen de
-   app-data toont **36% van de werkelijkheid**.
-   Voorstel: een tabel `ares_shoots` (één rij per `ares_row_key`, met status,
-   tasks, fotograaf, land, postcode, datum), bij elke import ge-upsert. Dat
-   levert drie dingen tegelijk:
-   - de kaart kan alle 954 woningen tonen in plaats van 342;
-   - de winter-overlapcheck uit WP3 wordt een databasequery in plaats van een
-     herberekening uit het bestand, en werkt dan ook tussen twee imports door;
-   - je houdt historie van wat Ares wanneer meldde, zonder de xlsx te bewaren.
+Het bouwwerk, in volgorde:
 
-3. **Vorm: proportionele-symbolenkaart, geen choropleth.** Eén punt per
-   postcode, oppervlakte (niet straal) evenredig met het aantal shoots — met max
-   51 en mediaan 1 moet dat op √-schaal, anders verdwijnt de lange staart van
-   enkelingen volledig. Choropleth valt af: 280 punten verdeeld over 5 landen
-   zegt niets op landniveau, en regiogrenzen hebben we niet.
-   Overlappende punten in de Alpen krijgen een 2px-ring in de achtergrondkleur,
-   zodat een cluster leesbaar blijft (`dataviz`-skill, mark specs).
+1. **`ares_shoots`-tabel: de import bewaart voortaan álle rijen.** Dit is de
+   kern, en hij is onmisbaar geworden: openstaande shoots zijn per definitie
+   géén editing-opdrachten, dus ze bestaan nu helemaal niet in de app — zonder
+   deze tabel valt er niets te tonen. Eén rij per `ares_row_key` (status,
+   tasks, fotograaf-alias, expert-alias, land, postcode, datum), ge-upsert bij
+   elke import zodat statuswijzigingen in Ares meekomen. Bijvangst: de
+   winter-overlapcheck uit WP3 wordt een databasequery in plaats van een
+   herberekening uit het bestand, en het is meteen historie van wat Ares
+   wanneer meldde.
+2. **Geocoding als gecommitte lookup-tabel** (`lib/postcode-coords.json`),
+   gegenereerd door een reproduceerbaar script in `scripts/` uit de
+   GeoNames-dump (CC BY 4.0; bronvermelding in de UI-voettekst van de kaart).
+   Geen runtime-API, geen key, geen netwerkafhankelijkheid in productie.
+   Postcodes die na een toekomstige import niet in de tabel staan, verschijnen
+   als "niet gegeocodeerd" op het importscherm — zelfde patroon als de
+   onbekende expert-aliassen. `FR.83583` en de `XX.`-codes zijn de eerste
+   bewoners van dat lijstje.
+3. **`photographers`-tabel + beheertab.** Naam, Ares-alias (kolom
+   `photographer` in de export), land + postcode van hun vestigingsadres,
+   actief/inactief. Locatie via dezelfde postcode-lookup — geen apart
+   geocoding-pad, en een fotograaf invoeren is twee velden. Eenmalig ~12
+   fotografen invoeren; het Mapping-tabblad uit het finance report is de
+   spiekbrief.
+4. **De kaart** (route `/kaart`, coordinator/admin, eigen nav-item — het is
+   een werkinstrument, geen dashboardsectie). West/Midden-Europa, projectie
+   gefit op de bounding box van de data (42–54° NB, −1,4–14,9° OL — een
+   wereldkaart zou 99,7% leeg zijn). Proportionele symbolen: oppervlakte op
+   √-schaal naar aantal open shoots per postcode, fotografen als
+   onderscheidend merkteken (ruit/ster) in een eigen kleur.
+5. **De interactie die het een planner maakt:**
+   - Fotograaf aanklikken → openstaande shoots gerangschikt op afstand in een
+     zijpaneel ("AT.5090 · Au · 12 km"), met de dichtstbijzijnde N ook visueel
+     verbonden op de kaart; afstandsringen (25/50/100 km) rond de fotograaf.
+   - Shoot aanklikken → welke andere open shoots liggen binnen X km (de
+     "kunnen ze dit combineren?"-vraag), plus welke fotograaf het dichtstbij
+     zit.
+   - Filters: status (default: alle open), fotograaf, land. De filterbalk
+     hergebruikt de bestaande chip-stijl.
+6. **Techniek, bewust licht:** `d3-geo` + een vereenvoudigde landen-TopoJSON
+   als inline-SVG. Geen Leaflet/MapLibre — geen tile-server als externe
+   afhankelijkheid en privacylek voor wat een statische onderlaag is.
+   Haversine is twintig regels TypeScript in `lib/geo.ts`, met een unit test.
 
-4. **Kleur codeert de businesscase, niet de decoratie.** De kaart beantwoordt
-   twee vragen tegelijk: *waar zit onze fotografie-inspanning* (grootte) en
-   *waar liggen nog AI-winterkansen* (kleur). Een punt met openstaande
-   summer→winter-kandidaten krijgt de accentkleur, de rest blijft neutraal. Zo
-   is de kaart een werkinstrument in plaats van een plaatje — en sluit hij aan
-   op het hero-getal uit WP4.
-
-5. **Techniek, bewust licht.** `d3-geo` voor de projectie plus een
-   vereenvoudigde landen-TopoJSON van de vijf landen; renderen als gewone
-   inline-SVG. Géén Leaflet/MapLibre: dat trekt tiles van een externe server bij
-   elke paginaweergave, wat een netwerkafhankelijkheid en een privacylek naar
-   een derde partij introduceert voor wat in feite een statisch kaartje is.
-   Hover-tooltip met postcode, plaatsnaam en aantallen; klik filtert de
-   opdrachtenlijst op die postcode.
-
-6. **Plek: eigen sectie op het dashboard** (coordinator/admin, zoals de rest van
-   dat scherm). Geen apart menu-item — het is context bij de cijfers, geen
-   dagelijkse werkplek.
-
-**Klaar wanneer:** de kaart toont alle gegeocodeerde woningen met correcte
-verhoudingen; een onbekende postcode verschijnt in het beheerscherm in plaats
-van stil te verdwijnen; en klikken op een punt opent de gefilterde
-opdrachtenlijst.
+**Klaar wanneer:** na een verse import staan alle openstaande shoots op de
+kaart; een fotograaf aanklikken geeft de afstandsgesorteerde lijst; een
+niet-geocodeerbare postcode verschijnt zichtbaar op het importscherm in plaats
+van stil te verdwijnen; en de coördinator kan een nieuwe fotograaf opvoeren
+zonder SQL.
 
 ### V3-WP7 — Optimalisaties uit de review
 
@@ -480,11 +496,12 @@ tests per pakket, commit per pakket):
 | 3 — Ares-import | groot | 2 |
 | 4 — Kosten | klein | 1 |
 | 5 — Opdrachten bewerken | middel | 1 |
-| 6 — Kaart van alle shoots | middel | 1–2 |
+| 6 — Shootplanner-kaart | groot | 2 |
 | 7 — Optimalisaties | middel | 1–2 |
 | 8 — Waarheidsronde | middel | 1 |
 
-**Totaal 10–12 sessies.** Ter kalibratie: v2 (WP0–WP6) was vergelijkbaar van
+**Totaal 10–12 sessies.** (WP6 groeide van kaartje naar planner, maar
+blijft binnen de marge.) Ter kalibratie: v2 (WP0–WP6) was vergelijkbaar van
 omvang en kostte ongeveer evenveel. De token- en tijdinschatting van v2 bleek
 redelijk te kloppen; ik verwacht hier hetzelfde orde van grootte.
 
@@ -503,6 +520,6 @@ verhaal waar de app om vraagt.
 | 3 | Ares-import summer→winter | ✅ |
 | 4 | Kosten en besparing | ✅ |
 | 5 | Opdrachten bewerken | ⬜ |
-| 6 | Kaart van alle shoots | ⬜ |
+| 6 | Shootplanner-kaart (fotografen, afstanden, ares_shoots) | ⬜ |
 | 7 | Optimalisaties | ⬜ |
 | 8 | Waarheidsronde | ⬜ |
