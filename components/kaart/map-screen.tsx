@@ -1,14 +1,15 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
+
 import { useMemo, useState } from "react";
-import { geoMercator, geoPath } from "d3-geo";
 import { AlertTriangle, Camera, Diamond } from "lucide-react";
+import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
 
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { haversineDistanceKm } from "@/lib/geo";
 import type { PhotographerPoint, ShootCluster } from "@/lib/shoot-map";
-import { cn } from "@/lib/utils";
 
 const openStatuses = ["Assigned", "Readytoshoot", "Signedup", "Onhold"];
 const statusLabels: Record<string, string> = {
@@ -20,22 +21,19 @@ const statusLabels: Record<string, string> = {
   Rejected: "Afgewezen",
 };
 
-const WIDTH = 900;
-const HEIGHT = 680;
-const RING_DISTANCES_KM = [25, 50, 100];
 const COMBINE_RADIUS_KM = 50;
+const DEFAULT_CENTER: [number, number] = [48, 8];
+const DEFAULT_ZOOM = 5;
 
 type Selection = { type: "photographer"; id: string } | { type: "cluster"; key: string } | null;
 
 export function MapScreen({
   clusters,
   photographers,
-  countries,
   unresolvedCount,
 }: {
   clusters: ShootCluster[];
   photographers: PhotographerPoint[];
-  countries: GeoJSON.FeatureCollection;
   unresolvedCount: number;
 }) {
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(openStatuses));
@@ -59,16 +57,6 @@ export function MapScreen({
       .filter((c) => c.shoots.length > 0 && (!landFilter || c.land === landFilter));
   }, [clusters, statusFilter, landFilter]);
 
-  const { projection, pathGenerator } = useMemo(() => {
-    const points = [
-      ...filteredClusters.map((c) => ({ lat: c.lat, lon: c.lon })),
-      ...photographers.map((p) => ({ lat: p.lat, lon: p.lon })),
-    ];
-    const bbox = computeBoundingBox(points);
-    const proj = geoMercator().fitSize([WIDTH, HEIGHT], boundingBoxPolygon(bbox));
-    return { projection: proj, pathGenerator: geoPath(proj) };
-  }, [filteredClusters, photographers]);
-
   function toggleStatus(status: string) {
     setStatusFilter((prev) => {
       const next = new Set(prev);
@@ -84,6 +72,24 @@ export function MapScreen({
     selection?.type === "cluster" ? filteredClusters.find((c) => c.key === selection.key) ?? null : null;
 
   const totalShoots = filteredClusters.reduce((sum, c) => sum + c.shoots.length, 0);
+
+  const nearestLines =
+    selectedPhotographer &&
+    filteredClusters
+      .map((c) => ({
+        cluster: c,
+        km: haversineDistanceKm(selectedPhotographer, { lat: c.lat, lon: c.lon }),
+      }))
+      .sort((a, b) => a.km - b.km)
+      .slice(0, 5);
+
+  const bounds = useMemo(() => {
+    const points: [number, number][] = [
+      ...filteredClusters.map((c): [number, number] => [c.lat, c.lon]),
+      ...photographers.map((p): [number, number] => [p.lat, p.lon]),
+    ];
+    return points.length > 0 ? points : null;
+  }, [filteredClusters, photographers]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,113 +108,75 @@ export function MapScreen({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="overflow-x-auto rounded-md border border-border bg-card">
-          <svg className="min-w-[600px]" role="img" viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
-            <title>Kaart met openstaande shoots en fotografen in West- en Midden-Europa</title>
-            <g>
-              {countries.features.map((feature) => (
-                <path
-                  className="fill-secondary stroke-border"
-                  d={pathGenerator(feature) ?? undefined}
-                  key={String(feature.properties?.land)}
-                  strokeWidth={1}
-                />
-              ))}
-            </g>
+        <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-border">
+          <MapContainer
+            bounds={bounds ?? undefined}
+            boundsOptions={{ padding: [40, 40] }}
+            center={bounds ? undefined : DEFAULT_CENTER}
+            className="size-full"
+            zoom={bounds ? undefined : DEFAULT_ZOOM}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-auteurs'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
 
-            {selectedPhotographer ? (
-              <g className="pointer-events-none">
-                {RING_DISTANCES_KM.map((km) => (
-                  <circle
-                    className="fill-none stroke-muted-foreground/30"
-                    cx={projection([selectedPhotographer.lon, selectedPhotographer.lat])?.[0]}
-                    cy={projection([selectedPhotographer.lon, selectedPhotographer.lat])?.[1]}
-                    key={km}
-                    r={kmToPixelRadius(km, selectedPhotographer.lat, projection)}
-                    strokeDasharray="3 3"
-                    strokeWidth={1}
+            {selectedPhotographer && nearestLines
+              ? nearestLines.map(({ cluster }) => (
+                  <Polyline
+                    key={cluster.key}
+                    pathOptions={{ color: "#6366f1", weight: 1.5, opacity: 0.6 }}
+                    positions={[
+                      [selectedPhotographer.lat, selectedPhotographer.lon],
+                      [cluster.lat, cluster.lon],
+                    ]}
                   />
-                ))}
-                {filteredClusters
-                  .map((c) => ({
-                    cluster: c,
-                    km: haversineDistanceKm(selectedPhotographer, { lat: c.lat, lon: c.lon }),
-                  }))
-                  .sort((a, b) => a.km - b.km)
-                  .slice(0, 5)
-                  .map(({ cluster }) => {
-                    const from = projection([selectedPhotographer.lon, selectedPhotographer.lat]);
-                    const to = projection([cluster.lon, cluster.lat]);
-                    if (!from || !to) return null;
-                    return (
-                      <line
-                        className="stroke-chart-2/60"
-                        key={cluster.key}
-                        strokeWidth={1}
-                        x1={from[0]}
-                        x2={to[0]}
-                        y1={from[1]}
-                        y2={to[1]}
-                      />
-                    );
-                  })}
-              </g>
-            ) : null}
+                ))
+              : null}
 
             {filteredClusters.map((cluster) => {
-              const point = projection([cluster.lon, cluster.lat]);
-              if (!point) return null;
-              const radius = 4 + 3 * Math.sqrt(cluster.shoots.length);
               const isSelected = selectedCluster?.key === cluster.key;
+              const radius = 6 + 3 * Math.sqrt(cluster.shoots.length);
               return (
-                <circle
-                  className={cn(
-                    "cursor-pointer fill-chart-1 stroke-card transition-opacity",
-                    isSelected ? "opacity-100" : "opacity-75 hover:opacity-100",
-                  )}
-                  cx={point[0]}
-                  cy={point[1]}
+                <CircleMarker
+                  center={[cluster.lat, cluster.lon]}
+                  eventHandlers={{ click: () => setSelection({ type: "cluster", key: cluster.key }) }}
                   key={cluster.key}
-                  onClick={() => setSelection({ type: "cluster", key: cluster.key })}
-                  r={radius}
-                  strokeWidth={isSelected ? 2 : 1}
+                  pathOptions={{
+                    color: "var(--card, #fff)",
+                    weight: isSelected ? 2 : 1,
+                    fillColor: "#f97316",
+                    fillOpacity: isSelected ? 1 : 0.8,
+                  }}
+                  radius={radius}
                 >
-                  <title>
+                  <Tooltip>
                     {cluster.land}.{cluster.postcode} ({cluster.placeName}) — {cluster.shoots.length} shoot(s)
-                  </title>
-                </circle>
+                  </Tooltip>
+                </CircleMarker>
               );
             })}
 
             {photographers.map((photographer) => {
-              const point = projection([photographer.lon, photographer.lat]);
-              if (!point) return null;
               const isSelected = selectedPhotographer?.id === photographer.id;
-              const size = 9;
               return (
-                <g
-                  className="cursor-pointer"
+                <CircleMarker
+                  center={[photographer.lat, photographer.lon]}
+                  eventHandlers={{ click: () => setSelection({ type: "photographer", id: photographer.id }) }}
                   key={photographer.id}
-                  onClick={() => setSelection({ type: "photographer", id: photographer.id })}
-                  transform={`translate(${point[0]}, ${point[1]}) rotate(45)`}
+                  pathOptions={{
+                    color: "var(--card, #fff)",
+                    weight: isSelected ? 2 : 1,
+                    fillColor: "#6366f1",
+                    fillOpacity: isSelected ? 1 : 0.85,
+                  }}
+                  radius={7}
                 >
-                  <rect
-                    className={cn(
-                      "fill-chart-2 stroke-card transition-opacity",
-                      isSelected ? "opacity-100" : "opacity-85 hover:opacity-100",
-                    )}
-                    height={size}
-                    strokeWidth={isSelected ? 2 : 1}
-                    width={size}
-                    x={-size / 2}
-                    y={-size / 2}
-                  >
-                    <title>{photographer.name}</title>
-                  </rect>
-                </g>
+                  <Tooltip>{photographer.name}</Tooltip>
+                </CircleMarker>
               );
             })}
-          </svg>
+          </MapContainer>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -247,8 +215,8 @@ export function MapScreen({
             />
           ) : (
             <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-              Klik op een fotograaf (ruit) om zijn openstaande shoots op afstand gesorteerd te zien, of op een locatie
-              (cirkel) om te zien wat er in de buurt ligt.
+              Klik op een fotograaf (paarse stip) om zijn openstaande shoots op afstand gesorteerd te zien, of op een
+              locatie (oranje stip) om te zien wat er in de buurt ligt.
             </p>
           )}
         </div>
@@ -450,59 +418,4 @@ function ClusterDetail({
       </div>
     </div>
   );
-}
-
-function computeBoundingBox(points: { lat: number; lon: number }[]) {
-  if (points.length === 0) return { minLat: 42, maxLat: 54, minLon: -2, maxLon: 15 };
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-  for (const p of points) {
-    minLat = Math.min(minLat, p.lat);
-    maxLat = Math.max(maxLat, p.lat);
-    minLon = Math.min(minLon, p.lon);
-    maxLon = Math.max(maxLon, p.lon);
-  }
-  return { minLat, maxLat, minLon, maxLon };
-}
-
-function boundingBoxPolygon({
-  minLat,
-  maxLat,
-  minLon,
-  maxLon,
-}: {
-  minLat: number;
-  maxLat: number;
-  minLon: number;
-  maxLon: number;
-}): GeoJSON.Polygon {
-  const padLat = (maxLat - minLat) * 0.12 || 1;
-  const padLon = (maxLon - minLon) * 0.12 || 1;
-  return {
-    type: "Polygon",
-    coordinates: [
-      [
-        [minLon - padLon, minLat - padLat],
-        [maxLon + padLon, minLat - padLat],
-        [maxLon + padLon, maxLat + padLat],
-        [minLon - padLon, maxLat + padLat],
-        [minLon - padLon, minLat - padLat],
-      ],
-    ],
-  };
-}
-
-/** Zet een afstand in km om naar een pixelradius op de huidige projectie, gemeten vanaf de breedtegraad van het middelpunt (1° breedtegraad ≈ 111 km, ongeacht lengtegraad). */
-function kmToPixelRadius(
-  km: number,
-  atLat: number,
-  projection: ReturnType<typeof geoMercator>,
-): number {
-  const centerLon = 0;
-  const p1 = projection([centerLon, atLat]);
-  const p2 = projection([centerLon, atLat + km / 111]);
-  if (!p1 || !p2) return 0;
-  return Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
 }

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { MapScreen } from "@/components/kaart/map-screen";
-import europeCountries from "@/lib/europe-countries.json";
 import { clusterShoots, resolvePhotographers } from "@/lib/shoot-map";
 import { getCurrentUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -26,11 +25,6 @@ export default async function KaartPage() {
   const unresolvedCount = totalShoots - clusters.reduce((sum, c) => sum + c.shoots.length, 0);
 
   return (
-    <MapScreen
-      clusters={clusters}
-      countries={europeCountries as GeoJSON.FeatureCollection}
-      photographers={photographerPoints}
-      unresolvedCount={unresolvedCount}
-    />
+    <MapScreen clusters={clusters} photographers={photographerPoints} unresolvedCount={unresolvedCount} />
   );
 }
