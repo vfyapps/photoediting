@@ -2,9 +2,10 @@
 
 Interne fotobewerkingsapp van Villa for You, ter vervanging van de Excel-tracker. De app
 gebruikt Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui en Supabase met
-`@supabase/ssr`. Zes schermen: Opdrachten (bord + tabel, de default), Opdrachtdetail,
-QC (toetsenbord-eerst triage), Dashboard, Academy (leermateriaal + de QC-feedbackloop)
-en Beheer (accounts, editors/verhuurexperts, instellingen, referentiedata —
+`@supabase/ssr`. Acht schermen: Opdrachten (bord + tabel, de default), Opdrachtdetail,
+QC (toetsenbord-eerst triage), Dashboard, Academy (leermateriaal + de QC-feedbackloop),
+Beheer (accounts, editors/experts/fotografen, instellingen, referentiedata, Ares-import —
+coordinator/admin) en Kaart (shootplanner: open shoots en fotografen op afstand,
 coordinator/admin). Zie `AGENTS.md` voor de functionele spec per scherm, `BUILDPLAN.md`
 voor WP0–WP6 en `BUILDPLAN-V3.md` voor de uitvoeringsgeschiedenis daarna.
 
@@ -63,17 +64,39 @@ npm run types:generate:local
 
 Beide scripts vervangen `lib/database.types.ts` alleen wanneer de CLI-opdracht slaagt.
 
+## Kaartdata regenereren
+
+De shootplanner-kaart (`/kaart`) gebruikt twee gecommitte, statische bestanden — geen
+runtime-API, geen key:
+
+- `lib/postcode-coords.json` — postcode → coördinaten voor AT/BE/DE/FR/NL, uit de
+  GeoNames-postcode-dump (CC BY 4.0). Regenereren: `node scripts/generate-postcode-coords.mjs`.
+  Alleen nodig als er een land bijkomt; nieuwe postcodes binnen de bestaande vijf landen
+  zitten al in de volledige dump.
+- `lib/europe-countries.json` — vereenvoudigde landomtrekken (Natural Earth, via het
+  `world-atlas`-devDependency-pakket). Regenereren: `node scripts/generate-europe-countries.mjs`.
+
+Beide scripts downloaden hun bron opnieuw en overschrijven het uitvoerbestand pas bij
+succes. `scripts/lib/unzip.mjs` is een kleine, dependency-vrije ZIP-lezer die het eerste
+script gebruikt — reguliere `tar`/`Expand-Archive` bleken niet overal betrouwbaar.
+
 ## Testen
 
-- `npm test` — Vitest, unit tests voor `lib/workflow.ts`, `lib/validation.ts` en
-  `lib/assignments.ts`. Geen database nodig.
+- `npm test` — Vitest, unit tests voor o.a. `lib/workflow.ts`, `lib/validation.ts`,
+  `lib/assignments.ts`, `lib/ares-import.ts` en `lib/geo.ts`. Geen database nodig.
+- `npm run check:service-role-key` — permanente vangrail: faalt als
+  `SUPABASE_SERVICE_ROLE_KEY` ergens buiten `lib/supabase/admin.ts` voorkomt, of als er
+  ooit een `NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY` opduikt.
+- `npm run verify` — bovenstaande vangrail + lint + typecheck + tests + build in één
+  commando; draai dit vóór elke deploy.
 - `npm run test:e2e` — Playwright, de volledige opdrachtdoorloop
   (`e2e/assignment-journey.spec.ts`) en de inlogflow. Vereist een draaiende lokale
   Supabase-stack: `npm run db:start` (Docker) en daarna `npm run db:reset` om de
   seeds uit `supabase/seeds/` te laden.
 - RLS-isolatietest in `tests/rls/editor-isolation.test.ts` — controleert dat een
-  editor alleen eigen/gepubliceerde rijen ziet. Draait ook tegen `npm run db:start`.
-- `npm run lint` en `npm run build` — altijd vóór een deploy, zie hieronder.
+  editor alleen eigen/gepubliceerde rijen ziet, en dat een niet-coordinator geen
+  beheertabel (bv. `photographers`, `admin_events`) kan schrijven. Draait ook tegen
+  `npm run db:start`.
 
 Beide `db:*`-scripts en de e2e/RLS-tests hebben Docker nodig (voor de lokale
 Supabase-stack) en zijn dus niet overal te draaien — bijvoorbeeld niet in een

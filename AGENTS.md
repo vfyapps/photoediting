@@ -365,6 +365,44 @@ Contains at minimum:
 - Monthly volume, requested versus completed.
 - CSV export per view.
 
+### 7. Beheer (V3-WP2, V3-WP6, V3-WP7)
+Coordinator and admin only, at `/beheer`, five subtabs. Replaces what used to require SQL:
+
+- **Gebruikers** — invite (Auth Admin API), change role, activate/deactivate. Admin only for
+  writes; coordinator can view. An admin cannot demote or deactivate themself. Shows the last
+  20 rows of `admin_events` (see below).
+- **Editors & experts** — CRUD on `editors` and `rental_experts`, link an editor to an
+  account. Deactivate, never hard-delete.
+- **Fotografen** (V3-WP6) — name, Ares alias, and a land+postcode location in the same shape
+  as an acco-id, for the shootplanner map.
+- **Instellingen** — the `app_settings` rows as a real form with per-field help text, including
+  the two cost settings the dashboard savings figure depends on
+  (`avoided_shoot_cost_eur`, `monthly_editing_cost_eur`).
+- **Referentiedata** — editing goals and QC issue types, add/rename/deactivate.
+- **Ares-import** (V3-WP3, extended in V3-WP6) — upload the monthly xlsx export. Preview
+  before commit, four groups (new / already in the app / already has a winter shoot /
+  problem — unresolved expert alias or unreadable date). On commit: every row is upserted
+  into `ares_shoots` (not just the summer→winter candidates — open shoots aren't editing
+  assignments and would otherwise exist nowhere in the app), and the selected candidates
+  become `summer_to_winter` assignments. The file itself is never stored; the server
+  re-parses it at commit time rather than trusting client-supplied fields.
+
+Every write here uses `SUPABASE_SERVICE_ROLE_KEY` only where RLS cannot reach (inviting a
+user, banning one) — see the Environment variables amendment below. Everything else goes
+through the ordinary RLS-bound client, same as every other screen.
+
+**admin_events**: an insert-only audit table (actor, action, target, timestamp) for exactly
+the beheer actions above plus cancelling/deleting an assignment. No update or delete grant
+exists for anyone, including admin — an audit trail you can edit isn't one.
+
+### 8. Kaart (V3-WP6)
+Coordinator and admin only, at `/kaart`. A shootplanner, not a dashboard chart: open Ares
+shoots and photographer locations on a proportional-symbol map of West/Central Europe, so the
+coordinator can see which shoots a photographer could combine by distance. See the
+Environment variables / Rule 1 amendment below for why this doesn't violate "no ARES
+integration." Distances are haversine (`lib/geo.ts`) and always labelled "hemelsbreed" —
+deliberately not routed, see `BUILDPLAN-V3.md` V3-WP6.
+
 ---
 
 ## Permissions

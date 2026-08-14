@@ -6,15 +6,18 @@
 -- Playwright kan inloggen en de RLS-test een echte editor-sessie heeft in
 -- plaats van de service-role key, die overal langs RLS heen gaat.
 --
--- Drie rollen, want dat is precies wat schemawijziging 5 uit AGENTS.md
--- afdekt: een coordinator die alles ziet, en twee editors die elkaar niet
--- mogen zien.
+-- Vier rollen: een coordinator die alles ziet, twee editors die elkaar niet
+-- mogen zien (schemawijziging 5 uit AGENTS.md), en een viewer voor de
+-- beheer-toegangstest (V3-WP8) - editor en viewer moeten allebei alle
+-- /beheer-writes geblokkeerd zien door RLS, niet alleen door een verborgen
+-- knop in de UI.
 --
 --   coordinator@villaforyou.test  ->  coordinator
 --   jill@villaforyou.test         ->  editor, gekoppeld aan editor "Jill"
 --   kaylee@villaforyou.test       ->  editor, gekoppeld aan editor "Kaylee"
+--   viewer@villaforyou.test       ->  viewer
 --
--- Wachtwoord voor alle drie: testtest123
+-- Wachtwoord voor alle vier: testtest123
 -- =============================================================================
 
 do $seed$
@@ -27,7 +30,8 @@ begin
     from (values
       ('11111111-1111-4111-8111-111111111111'::uuid, 'coordinator@villaforyou.test', 'Test Coordinator', 'coordinator'::app_role, null),
       ('22222222-2222-4222-8222-222222222222'::uuid, 'jill@villaforyou.test',        'Jill (test)',      'editor'::app_role,      'Jill'),
-      ('33333333-3333-4333-8333-333333333333'::uuid, 'kaylee@villaforyou.test',      'Kaylee (test)',    'editor'::app_role,      'Kaylee')
+      ('33333333-3333-4333-8333-333333333333'::uuid, 'kaylee@villaforyou.test',      'Kaylee (test)',    'editor'::app_role,      'Kaylee'),
+      ('44444444-4444-4444-8444-444444444444'::uuid, 'viewer@villaforyou.test',      'Viewer (test)',    'viewer'::app_role,      null)
     ) as t(id, email, full_name, role, editor_name)
   loop
     insert into auth.users (

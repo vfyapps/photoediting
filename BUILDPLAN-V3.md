@@ -533,4 +533,4 @@ verhaal waar de app om vraagt.
 | 5 | Opdrachten bewerken | ✅ |
 | 6 | Shootplanner-kaart (fotografen, afstanden, ares_shoots) | ✅ |
 | 7 | Optimalisaties | ✅ |
-| 8 | Waarheidsronde | ⬜ |
+| 8 | Waarheidsronde | ⚠️ code, vangrail en RLS-tests klaar; live e2e/RLS-run, Vercel-deployrepetitie en visuele ronde vereisen Docker/Vercel-toegang die deze sandbox niet heeft |

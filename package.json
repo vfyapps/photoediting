@@ -13,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "check:service-role-key": "node scripts/check-service-role-key.mjs",
+    "verify": "npm run check:service-role-key && npm run lint && tsc --noEmit && npm test && npm run build",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "types:generate": "node scripts/generate-database-types.mjs --linked",
