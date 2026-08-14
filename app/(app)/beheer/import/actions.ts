@@ -2,7 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { buildAresImportCandidates, parseAresWorkbook, type ImportCandidate } from "@/lib/ares-import";
+import {
+  buildAresImportCandidates,
+  parseAccoId,
+  parseAresDate,
+  parseAresWorkbook,
+  type ImportCandidate,
+  type ParsedAresRow,
+} from "@/lib/ares-import";
+import postcodeCoords from "@/lib/postcode-coords.json";
 import { getCurrentUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -20,14 +28,38 @@ async function requireCoordinator() {
   return { ok: true as const, user };
 }
 
+/** Postcodes uit deze rijen die niet in lib/postcode-coords.json staan. */
+function findUngeocoded(rows: ParsedAresRow[]): { land: string; postcode: string; count: number }[] {
+  const counts = new Map<string, { land: string; postcode: string; count: number }>();
+  for (const row of rows) {
+    const parsed = parseAccoId(row.accoId);
+    if (!parsed) continue;
+    const key = `${parsed.land}.${parsed.postcode}`;
+    if (key in postcodeCoords) continue;
+    const existing = counts.get(key);
+    if (existing) existing.count++;
+    else counts.set(key, { land: parsed.land, postcode: parsed.postcode, count: 1 });
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count);
+}
+
+async function fetchHistoricalWinterAccoIds(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.from("ares_shoots").select("acco_id").contains("tasks", ["ExteriorWinter"]);
+  return new Set((data ?? []).map((r) => r.acco_id));
+}
+
 export type PreviewResult =
   | {
       ok: true;
       candidates: ImportCandidate[];
       ignoredNonAt: number;
       ignoredNotQualifying: number;
+      ungeocoded: { land: string; postcode: string; count: number }[];
+      openShootCount: number;
     }
   | { ok: false; message: string };
+
+const openStatuses = ["Assigned", "Readytoshoot", "Signedup", "Onhold"];
 
 /**
  * Stap 1: parseert het bestand en berekent de vier groepen, maar schrijft
@@ -49,40 +81,44 @@ export async function previewAresImport(file: File): Promise<PreviewResult> {
   if (!parseResult.ok) return { ok: false, message: parseResult.error };
 
   const supabase = await createClient();
-  const [{ data: existing }, { data: aliases }] = await Promise.all([
+  const [{ data: existing }, { data: aliases }, historicalWinterAccoIds] = await Promise.all([
     supabase.from("assignments").select("acco_id"),
     supabase.from("ares_expert_aliases").select("alias"),
+    fetchHistoricalWinterAccoIds(supabase),
   ]);
 
   const funnel = buildAresImportCandidates({
     rows: parseResult.rows,
     existingAccoIds: new Set((existing ?? []).map((r) => r.acco_id)),
     knownAliases: new Set((aliases ?? []).map((r) => r.alias.toLowerCase())),
+    historicalWinterAccoIds,
   });
 
-  return { ok: true, ...funnel };
+  return {
+    ok: true,
+    ...funnel,
+    ungeocoded: findUngeocoded(parseResult.rows),
+    openShootCount: parseResult.rows.filter((r) => openStatuses.includes(r.status)).length,
+  };
 }
 
 export type CommitResult =
-  | { ok: true; createdCount: number; skippedCount: number }
+  | { ok: true; createdCount: number; skippedCount: number; shootCount: number }
   | { ok: false; message: string };
 
 /**
- * Stap 2: de gebruiker heeft de preview gezien en een selectie bevestigd.
- * Herhaalt de "al in de app"-check op het moment van committen (niet het
- * moment van preview) om een race met een import van iemand anders af te
- * vangen, en maakt alles in één transactie-achtige reeks server-side calls
- * aan via Zod-gevalideerde invoer.
+ * Stap 2: parseert het bestand opnieuw server-side (i.p.v. de
+ * client-geselecteerde velden te vertrouwen — selectedRowKeys is alleen de
+ * keuze van de gebruiker) en doet twee dingen in één import:
+ * 1. Bewaart élke rij in ares_shoots (upsert op ares_row_key), zodat
+ *    openstaande shoots - die geen editing-opdracht zijn en dus anders
+ *    nergens bestaan - zichtbaar worden op de shootplanner-kaart.
+ * 2. Maakt assignments aan voor de geselecteerde summer_to_winter-kandidaten,
+ *    zoals in WP3.
  */
 export async function commitAresImport(input: {
-  fileName: string;
-  candidates: {
-    rowKey: string;
-    accoId: string;
-    priority: "low" | "medium" | "high";
-    expertAlias: string;
-    requestDate: string | null;
-  }[];
+  file: File;
+  selectedRowKeys: string[];
 }): Promise<CommitResult> {
   const gate = await requireCoordinator();
   if (!gate.ok) return gate;
@@ -92,18 +128,70 @@ export async function commitAresImport(input: {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Ongeldige invoer" };
   }
 
+  const buffer = await parsed.data.file.arrayBuffer();
+  const parseResult = parseAresWorkbook(buffer);
+  if (!parseResult.ok) return { ok: false, message: parseResult.error };
+
   const supabase = await createClient();
-  const [{ data: existing }, { data: aliases }] = await Promise.all([
+  const [{ data: existing }, { data: aliases }, historicalWinterAccoIds] = await Promise.all([
     supabase.from("assignments").select("acco_id"),
     supabase.from("ares_expert_aliases").select("alias, rental_expert_id"),
+    fetchHistoricalWinterAccoIds(supabase),
   ]);
 
   const existingAccoIds = new Set((existing ?? []).map((r) => r.acco_id));
   const aliasToExpertId = new Map((aliases ?? []).map((r) => [r.alias.toLowerCase(), r.rental_expert_id]));
+  const knownAliases = new Set((aliases ?? []).map((r) => r.alias.toLowerCase()));
 
-  const toCreate = parsed.data.candidates.filter((c) => !existingAccoIds.has(c.accoId));
-  const skippedCount = parsed.data.candidates.length - toCreate.length;
+  const funnel = buildAresImportCandidates({
+    rows: parseResult.rows,
+    existingAccoIds,
+    knownAliases,
+    historicalWinterAccoIds,
+  });
 
+  const selectedKeys = new Set(parsed.data.selectedRowKeys);
+  const toCreate = funnel.candidates.filter(
+    (c) => selectedKeys.has(c.rowKey) && (c.group === "new" || c.group === "winter_overlap"),
+  );
+  const skippedCount = selectedKeys.size - toCreate.length;
+
+  // 1. ares_shoots: elke rij, ongeacht kandidaatstatus (BUILDPLAN-V3.md V3-WP6.1).
+  const shootRows = parseResult.rows
+    .map((row) => {
+      const location = parseAccoId(row.accoId);
+      if (!location) return null;
+      return {
+        ares_row_key: row.rowKey,
+        acco_id: row.accoId,
+        land: location.land,
+        postcode: location.postcode,
+        status: row.status,
+        tasks: row.tasks,
+        photographer_alias: row.photographerAlias || null,
+        expert_alias: row.expertAlias || null,
+        request_date: parseAresDate(row.requestDateRaw),
+        imported_at: new Date().toISOString(),
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  if (shootRows.length > 0) {
+    const { error: shootsError } = await supabase
+      .from("ares_shoots")
+      .upsert(shootRows, { onConflict: "ares_row_key" });
+    if (shootsError) {
+      return {
+        ok: false,
+        message:
+          shootsError.code === "42501"
+            ? "Alleen de coördinator kan importeren."
+            : "De shoots konden niet worden opgeslagen. Probeer opnieuw.",
+      };
+    }
+  }
+
+  // 2. Nieuwe summer_to_winter-opdrachten voor de geselecteerde kandidaten.
   if (toCreate.length > 0) {
     const { error: insertError } = await supabase.from("assignments").insert(
       toCreate.map((c) => ({
@@ -130,14 +218,15 @@ export async function commitAresImport(input: {
 
   await supabase.from("import_runs").insert({
     imported_by: gate.user.id,
-    file_name: parsed.data.fileName,
+    file_name: parsed.data.file.name,
     created_count: toCreate.length,
     skipped_count: skippedCount,
   });
 
   revalidatePath("/");
   revalidatePath("/beheer/import");
-  return { ok: true, createdCount: toCreate.length, skippedCount };
+  revalidatePath("/kaart");
+  return { ok: true, createdCount: toCreate.length, skippedCount, shootCount: shootRows.length };
 }
 
 export type AliasActionResult = { ok: true } | { ok: false; message: string };

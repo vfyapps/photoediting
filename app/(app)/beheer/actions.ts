@@ -15,6 +15,7 @@ import {
   upsertEditingGoalSchema,
   upsertEditorSchema,
   upsertExpertSchema,
+  upsertPhotographerSchema,
   upsertQcIssueTypeSchema,
 } from "@/lib/validation";
 
@@ -331,6 +332,51 @@ export async function upsertExpert(input: {
   }
 
   revalidatePath("/beheer/editors");
+  return { ok: true };
+}
+
+// ── Fotografen (V3-WP6) ──────────────────────────────────────────────────────
+
+export async function upsertPhotographer(input: {
+  id: string | null;
+  name: string;
+  aresAlias: string | null;
+  land: string | null;
+  postcode: string | null;
+  isActive: boolean;
+}): Promise<BeheerActionResult> {
+  const gate = await requireCoordinator();
+  if (!gate.ok) return gate;
+
+  const parsed = upsertPhotographerSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Ongeldige invoer" };
+  }
+
+  const supabase = await createClient();
+  const payload = {
+    name: parsed.data.name,
+    ares_alias: parsed.data.aresAlias || null,
+    land: parsed.data.land || null,
+    postcode: parsed.data.postcode || null,
+    is_active: parsed.data.isActive,
+  };
+  const { error } = parsed.data.id
+    ? await supabase.from("photographers").update(payload).eq("id", parsed.data.id)
+    : await supabase.from("photographers").insert(payload);
+
+  if (error) {
+    return {
+      ok: false,
+      message:
+        error.code === "23505"
+          ? "Er bestaat al een fotograaf met deze naam of Ares-alias."
+          : "Opslaan mislukt. Probeer opnieuw.",
+    };
+  }
+
+  revalidatePath("/beheer/fotografen");
+  revalidatePath("/kaart");
   return { ok: true };
 }
 

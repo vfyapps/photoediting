@@ -176,6 +176,45 @@ export type Database = {
           },
         ]
       }
+      ares_shoots: {
+        Row: {
+          acco_id: string
+          ares_row_key: string
+          expert_alias: string | null
+          imported_at: string
+          land: string
+          photographer_alias: string | null
+          postcode: string
+          request_date: string | null
+          status: string
+          tasks: string[]
+        }
+        Insert: {
+          acco_id: string
+          ares_row_key: string
+          expert_alias?: string | null
+          imported_at?: string
+          land: string
+          photographer_alias?: string | null
+          postcode: string
+          request_date?: string | null
+          status: string
+          tasks?: string[]
+        }
+        Update: {
+          acco_id?: string
+          ares_row_key?: string
+          expert_alias?: string | null
+          imported_at?: string
+          land?: string
+          photographer_alias?: string | null
+          postcode?: string
+          request_date?: string | null
+          status?: string
+          tasks?: string[]
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           acco_id: string
@@ -552,6 +591,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      photographers: {
+        Row: {
+          ares_alias: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          land: string | null
+          name: string
+          postcode: string | null
+        }
+        Insert: {
+          ares_alias?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          land?: string | null
+          name: string
+          postcode?: string | null
+        }
+        Update: {
+          ares_alias?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          land?: string | null
+          name?: string
+          postcode?: string | null
+        }
+        Relationships: []
       }
       qc_findings: {
         Row: {

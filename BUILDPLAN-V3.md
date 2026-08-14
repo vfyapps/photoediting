@@ -520,6 +520,6 @@ verhaal waar de app om vraagt.
 | 3 | Ares-import summer→winter | ✅ |
 | 4 | Kosten en besparing | ✅ |
 | 5 | Opdrachten bewerken | ✅ |
-| 6 | Shootplanner-kaart (fotografen, afstanden, ares_shoots) | ⬜ |
+| 6 | Shootplanner-kaart (fotografen, afstanden, ares_shoots) | ✅ |
 | 7 | Optimalisaties | ⬜ |
 | 8 | Waarheidsronde | ⬜ |

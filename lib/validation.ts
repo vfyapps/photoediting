@@ -172,6 +172,15 @@ export const upsertExpertSchema = z.object({
   isActive: z.boolean(),
 });
 
+export const upsertPhotographerSchema = z.object({
+  id: z.string().uuid().nullable(),
+  name: z.string().trim().min(1, "Naam is verplicht").max(150),
+  aresAlias: z.string().trim().max(100).nullable(),
+  land: z.string().trim().toUpperCase().length(2, "Landcode is 2 letters").nullable(),
+  postcode: z.string().trim().max(10).nullable(),
+  isActive: z.boolean(),
+});
+
 const settingKeys = [
   "qc_reminder_days",
   "max_photos_per_property",
@@ -210,28 +219,27 @@ const allowedAresMimeTypes = [
 ];
 const maxAresFileBytes = 20 * 1024 * 1024;
 
-export const uploadAresFileSchema = z.object({
-  file: z
-    .instanceof(File, { message: "Kies een .xlsx-bestand" })
-    .refine((file) => file.size > 0, "Bestand is leeg")
-    .refine((file) => file.size <= maxAresFileBytes, "Bestand mag maximaal 20 MB zijn")
-    .refine(
-      (file) => allowedAresMimeTypes.includes(file.type) || file.name.toLowerCase().endsWith(".xlsx"),
-      "Alleen .xlsx-bestanden",
-    ),
-});
+const aresFileSchema = z
+  .instanceof(File, { message: "Kies een .xlsx-bestand" })
+  .refine((file) => file.size > 0, "Bestand is leeg")
+  .refine((file) => file.size <= maxAresFileBytes, "Bestand mag maximaal 20 MB zijn")
+  .refine(
+    (file) => allowedAresMimeTypes.includes(file.type) || file.name.toLowerCase().endsWith(".xlsx"),
+    "Alleen .xlsx-bestanden",
+  );
 
-const importCandidateSchema = z.object({
-  rowKey: z.string().min(1),
-  accoId: z.string().min(1),
-  priority: z.enum(["low", "medium", "high"]),
-  expertAlias: z.string(),
-  requestDate: z.string().nullable(),
-});
+export const uploadAresFileSchema = z.object({ file: aresFileSchema });
 
+/**
+ * Het bestand wordt bij commit opnieuw server-side geparsed (i.p.v. de
+ * client-geselecteerde velden te vertrouwen) - selectedRowKeys is alleen de
+ * keuze van de gebruiker, niet de brongegevens zelf (BUILDPLAN-V3.md
+ * V3-WP6.1). Leeg mag: een import kan ook uitsluitend dienen om
+ * ares_shoots te verversen, zonder nieuwe opdrachten aan te maken.
+ */
 export const commitAresImportSchema = z.object({
-  fileName: z.string().min(1).max(255),
-  candidates: z.array(importCandidateSchema).min(1, "Selecteer minstens één opdracht").max(1000),
+  file: aresFileSchema,
+  selectedRowKeys: z.array(z.string().min(1)).max(1000),
 });
 
 export const upsertAresExpertAliasSchema = z.object({

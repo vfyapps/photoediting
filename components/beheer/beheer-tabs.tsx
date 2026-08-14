@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { href: "/beheer/gebruikers", label: "Gebruikers" },
   { href: "/beheer/editors", label: "Editors & experts" },
+  { href: "/beheer/fotografen", label: "Fotografen" },
   { href: "/beheer/instellingen", label: "Instellingen" },
   { href: "/beheer/referentiedata", label: "Referentiedata" },
   { href: "/beheer/import", label: "Ares-import" },

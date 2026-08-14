@@ -29,6 +29,8 @@ type Preview = {
   candidates: ImportCandidate[];
   ignoredNonAt: number;
   ignoredNotQualifying: number;
+  ungeocoded: { land: string; postcode: string; count: number }[];
+  openShootCount: number;
 };
 
 const priorityLabels: Record<string, string> = { high: "Hoog", medium: "Gemiddeld", low: "Laag" };
@@ -107,17 +109,11 @@ export function ImportScreen({
   const savings = selectedCandidates.length * avoidedShootCostEur;
 
   function commit() {
-    if (!file || selectedCandidates.length === 0) return;
+    if (!file) return;
     startCommitting(async () => {
       const result = await commitAresImport({
-        fileName: file.name,
-        candidates: selectedCandidates.map((c) => ({
-          rowKey: c.rowKey,
-          accoId: c.accoId,
-          priority: c.priority,
-          expertAlias: c.expertAlias,
-          requestDate: c.requestDate,
-        })),
+        file,
+        selectedRowKeys: [...selected],
       });
       if (!result.ok) {
         toast.error(result.message);
@@ -125,8 +121,8 @@ export function ImportScreen({
       }
       toast.success(
         result.skippedCount > 0
-          ? `${result.createdCount} opdrachten aangemaakt, ${result.skippedCount} overgeslagen (al aanwezig).`
-          : `${result.createdCount} opdrachten aangemaakt.`,
+          ? `${result.shootCount} shoots opgeslagen, ${result.createdCount} opdrachten aangemaakt, ${result.skippedCount} overgeslagen (al aanwezig).`
+          : `${result.shootCount} shoots opgeslagen, ${result.createdCount} opdrachten aangemaakt.`,
       );
       setFile(null);
       setPreview(null);
@@ -160,9 +156,26 @@ export function ImportScreen({
         {preview ? (
           <div className="flex flex-col gap-4">
             <p className="text-xs text-muted-foreground">
-              {preview.ignoredNonAt} rijen genegeerd (niet AT), {preview.ignoredNotQualifying} rijen genegeerd
-              (voldoen niet aan de regel: Completed + zomer-buitenfoto&apos;s zonder winter-regel).
+              {preview.openShootCount} openstaande shoots gaan mee naar de kaart bij importeren.{" "}
+              {preview.ignoredNonAt} rijen genegeerd (niet AT als kandidaat, tellen wel mee op de kaart),{" "}
+              {preview.ignoredNotQualifying} rijen voldoen niet aan de summer→winter-regel.
             </p>
+
+            {preview.ungeocoded.length > 0 ? (
+              <div className="rounded-md border border-warning-tint bg-warning-tint p-3 text-xs">
+                <p className="mb-1 flex items-center gap-1.5 font-medium text-warning">
+                  <AlertTriangle className="size-3.5" />
+                  {preview.ungeocoded.length} postcode(s) niet gegeocodeerd — deze shoots verschijnen niet op de kaart
+                </p>
+                <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-muted-foreground">
+                  {preview.ungeocoded.map((u) => (
+                    <li className="font-mono" key={`${u.land}.${u.postcode}`}>
+                      {u.land}.{u.postcode} ({u.count}×)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <CandidateGroup
               description="Wordt aangemaakt met status 'nieuw' en doel 'summer_to_winter'."
@@ -195,13 +208,17 @@ export function ImportScreen({
 
             <div className="sticky bottom-4 flex items-center justify-between rounded-md border border-border bg-card p-3 shadow-sm">
               <div className="text-sm">
-                <span className="font-semibold">{selectedCandidates.length}</span> geselecteerd ·{" "}
+                <span className="font-semibold">{selectedCandidates.length}</span> opdracht(en) geselecteerd ·{" "}
                 <span className="text-muted-foreground">
                   geschatte besparing €{savings.toLocaleString("nl-NL")}
                 </span>
               </div>
-              <Button disabled={isCommitting || selectedCandidates.length === 0} onClick={commit}>
-                {isCommitting ? "Bezig…" : `${selectedCandidates.length} opdrachten importeren`}
+              <Button disabled={isCommitting} onClick={commit}>
+                {isCommitting
+                  ? "Bezig…"
+                  : selectedCandidates.length > 0
+                    ? `Importeren (${selectedCandidates.length} opdrachten + kaartdata)`
+                    : "Alleen kaartdata bijwerken"}
               </Button>
             </div>
           </div>

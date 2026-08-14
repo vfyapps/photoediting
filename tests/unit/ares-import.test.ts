@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAresImportCandidates, mapAresPriority, parseAresDate, type ParsedAresRow } from "@/lib/ares-import";
+import {
+  buildAresImportCandidates,
+  mapAresPriority,
+  parseAccoId,
+  parseAresDate,
+  type ParsedAresRow,
+} from "@/lib/ares-import";
 
 function row(overrides: Partial<ParsedAresRow>): ParsedAresRow {
   return {
@@ -9,6 +15,7 @@ function row(overrides: Partial<ParsedAresRow>): ParsedAresRow {
     status: "Completed",
     priority: "Medium",
     tasks: ["ExteriorSummer"],
+    photographerAlias: "evelien",
     expertAlias: "daniel",
     requestDateRaw: "15/01/26",
     ...overrides,
@@ -24,6 +31,18 @@ describe("parseAresDate", () => {
     expect(parseAresDate("13.1")).toBeNull();
     expect(parseAresDate("")).toBeNull();
     expect(parseAresDate("32/01/26")).toBeNull();
+  });
+});
+
+describe("parseAccoId", () => {
+  it("splitst LAND.POSTCODE.NR", () => {
+    expect(parseAccoId("AT.5090.03")).toEqual({ land: "AT", postcode: "5090", number: "03" });
+    expect(parseAccoId("FR.06250.01")).toEqual({ land: "FR", postcode: "06250", number: "01" });
+  });
+
+  it("geeft null bij een ongeldig formaat", () => {
+    expect(parseAccoId("niet-een-acco-id")).toBeNull();
+    expect(parseAccoId("")).toBeNull();
   });
 });
 
@@ -76,6 +95,16 @@ describe("buildAresImportCandidates", () => {
       knownAliases,
     });
     expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]?.group).toBe("winter_overlap");
+  });
+
+  it("groepeert 'winter_overlap' ook op een historische winter-regel uit een eerdere import", () => {
+    const result = buildAresImportCandidates({
+      rows: [row({ accoId: "AT.0003.02" })],
+      existingAccoIds: new Set(),
+      knownAliases,
+      historicalWinterAccoIds: new Set(["AT.0003.02"]),
+    });
     expect(result.candidates[0]?.group).toBe("winter_overlap");
   });
 

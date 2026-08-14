@@ -12,6 +12,7 @@ const SHEET_NAME = "Data_Fototool";
 const REQUIRED_COLUMNS = [
   "status",
   "priority",
+  "photographer",
   "tasks",
   "rental expert",
   "acco id",
@@ -25,6 +26,7 @@ export type ParsedAresRow = {
   status: string;
   priority: string;
   tasks: string[];
+  photographerAlias: string;
   expertAlias: string;
   requestDateRaw: string;
 };
@@ -94,6 +96,7 @@ export function parseAresWorkbook(buffer: ArrayBuffer): ParseAresResult {
         .split("|")
         .map((t) => t.trim())
         .filter(Boolean),
+      photographerAlias: String(row[col("photographer")] ?? "").trim(),
       expertAlias: String(row[col("rental expert")] ?? "").trim(),
       requestDateRaw: String(row[col("datum invoer")] ?? "").trim(),
     });
@@ -124,6 +127,20 @@ export function parseAresDate(value: string): string | null {
   return `${year}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
 }
 
+const accoIdPattern = /^([A-Z]{2})\.([0-9A-Za-z]+)\.(\d+)$/;
+
+/**
+ * VfY-acco-id's zijn altijd LAND.POSTCODE.NR (BUILDPLAN-V3.md V3-WP6, vooraf
+ * gemeten op 954/954 acco-id's). Gebruikt voor zowel ares_shoots (land/
+ * postcode-kolommen) als de kaart (postcode -> coördinaten).
+ */
+export function parseAccoId(accoId: string): { land: string; postcode: string; number: string } | null {
+  const match = accoIdPattern.exec(accoId.trim());
+  if (!match) return null;
+  const [, land, postcode, number] = match;
+  return { land, postcode, number };
+}
+
 export type ImportCandidateGroup = "new" | "existing" | "winter_overlap" | "problem";
 
 export type ImportCandidate = {
@@ -152,17 +169,27 @@ export function buildAresImportCandidates({
   rows,
   existingAccoIds,
   knownAliases,
+  historicalWinterAccoIds,
 }: {
   rows: ParsedAresRow[];
   existingAccoIds: ReadonlySet<string>;
   knownAliases: ReadonlySet<string>;
+  /**
+   * Acco-id's met een winter-regel uit eerdere imports (ares_shoots), niet
+   * alleen uit het huidige bestand - anders mist de overlapcheck een woning
+   * waarvan de winter-shoot vorige maand al uit de "open"-export is gevallen
+   * (BUILDPLAN-V3.md V3-WP6.1, "bijvangst"). Optioneel zodat bestaande
+   * aanroepen/tests zonder database-context blijven werken.
+   */
+  historicalWinterAccoIds?: ReadonlySet<string>;
 }): ImportFunnelResult {
   let ignoredNonAt = 0;
   let ignoredNotQualifying = 0;
 
-  const winterAccoIds = new Set(
-    rows.filter((r) => r.tasks.includes("ExteriorWinter")).map((r) => r.accoId),
-  );
+  const winterAccoIds = new Set([
+    ...rows.filter((r) => r.tasks.includes("ExteriorWinter")).map((r) => r.accoId),
+    ...(historicalWinterAccoIds ?? []),
+  ]);
 
   const seenAccoIds = new Set<string>();
   const candidates: ImportCandidate[] = [];
