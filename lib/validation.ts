@@ -103,6 +103,34 @@ export const deleteGuidelineExampleSchema = z.object({
   exampleId: z.string().uuid("Ongeldig voorbeeld"),
 });
 
+// ── Opdrachten bewerken (V3-WP5) ─────────────────────────────────────────────
+
+export const updateAssignmentDetailsSchema = z.object({
+  assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+  accoId: z.string().trim().min(1, "Acco-id is verplicht").max(50),
+  rentalExpertId: z.string().uuid().nullable(),
+  editorId: z.string().uuid().nullable(),
+  priority: z.enum(["low", "medium", "high"], { error: "Ongeldige prioriteit" }),
+  requestDate: z.string().nullable(),
+  briefing: z.string().trim().max(2000).nullable(),
+});
+
+export const cancelAssignmentSchema = z.object({
+  assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+  reason: z.string().trim().min(1, "Geef een reden op voor het annuleren").max(500),
+});
+
+export const deleteAssignmentSchema = z
+  .object({
+    assignmentId: z.string().uuid("Ongeldig opdracht-ID"),
+    accoId: z.string().trim().min(1),
+    confirmAccoId: z.string().trim().min(1, "Typ de acco-id ter bevestiging"),
+  })
+  .refine((data) => data.accoId === data.confirmAccoId, {
+    message: "Typ de acco-id exact over om te bevestigen",
+    path: ["confirmAccoId"],
+  });
+
 // ── Beheer (V3-WP2) ──────────────────────────────────────────────────────────
 
 const appRoleSchema = z.enum(["admin", "coordinator", "editor", "viewer"], {

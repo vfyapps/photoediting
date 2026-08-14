@@ -181,6 +181,7 @@ export type Database = {
           acco_id: string
           ares_row_key: string | null
           briefing: string | null
+          cancel_reason: string | null
           created_at: string
           created_by: string | null
           date_assigned: string | null
@@ -201,6 +202,7 @@ export type Database = {
           acco_id: string
           ares_row_key?: string | null
           briefing?: string | null
+          cancel_reason?: string | null
           created_at?: string
           created_by?: string | null
           date_assigned?: string | null
@@ -221,6 +223,7 @@ export type Database = {
           acco_id?: string
           ares_row_key?: string | null
           briefing?: string | null
+          cancel_reason?: string | null
           created_at?: string
           created_by?: string | null
           date_assigned?: string | null
@@ -760,6 +763,7 @@ export type Database = {
         Row: {
           acco_id: string | null
           briefing: string | null
+          cancel_reason: string | null
           created_at: string | null
           date_assigned: string | null
           date_completed: string | null

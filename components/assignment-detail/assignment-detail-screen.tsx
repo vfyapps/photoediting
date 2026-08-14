@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { updateAssignmentStatus } from "@/app/actions";
 import { updateMagnificUrl } from "@/app/(app)/opdrachten/[id]/actions";
 import { AcademyContextPanel } from "@/components/assignment-detail/academy-context-panel";
+import {
+  CancelAssignmentDialog,
+  DeleteAssignmentDialog,
+  EditAssignmentDialog,
+} from "@/components/assignment-detail/edit-assignment-panel";
 import { GoalPhotosPanel } from "@/components/assignment-detail/goal-photos-panel";
 import { QcHistory, type QcRound } from "@/components/assignment-detail/qc-history";
 import { SelfCheckDialog } from "@/components/assignment-detail/self-check-dialog";
@@ -23,6 +28,8 @@ type GuidelineSummary = { id: string; slug: string; title: string; goal_code: st
 type PromptRow = { id: string; title: string; prompt_text: string; goal_code: string | null };
 type GoalOption = { code: string; label_nl: string };
 
+type NameOption = { id: string; name: string };
+
 export function AssignmentDetailScreen({
   assignment,
   editItems,
@@ -32,6 +39,11 @@ export function AssignmentDetailScreen({
   magnificBaseUrl,
   maxPhotosPerProperty,
   canManageStatus,
+  canDelete,
+  currentEditorId,
+  currentRentalExpertId,
+  editors,
+  rentalExperts,
   qcRounds,
 }: {
   assignment: AssignmentDetail;
@@ -42,6 +54,11 @@ export function AssignmentDetailScreen({
   magnificBaseUrl: string | null;
   maxPhotosPerProperty: number;
   canManageStatus: boolean;
+  canDelete: boolean;
+  currentEditorId: string | null;
+  currentRentalExpertId: string | null;
+  editors: NameOption[];
+  rentalExperts: NameOption[];
   qcRounds: QcRound[];
 }) {
   const router = useRouter();
@@ -91,7 +108,28 @@ export function AssignmentDetailScreen({
               </Badge>
             ) : null}
           </div>
-          <MagnificButton assignmentId={assignment.id} baseUrl={magnificBaseUrl} url={assignment.magnificUrl} />
+          <div className="flex flex-wrap items-center gap-2">
+            <MagnificButton assignmentId={assignment.id} baseUrl={magnificBaseUrl} url={assignment.magnificUrl} />
+            {canManageStatus ? (
+              <>
+                <EditAssignmentDialog
+                  accoId={assignment.accoId}
+                  assignmentId={assignment.id}
+                  briefing={assignment.briefing}
+                  currentEditorId={currentEditorId}
+                  currentRentalExpertId={currentRentalExpertId}
+                  editors={editors}
+                  priority={assignment.priority}
+                  rentalExperts={rentalExperts}
+                  requestDate={assignment.requestDate}
+                />
+                {assignment.status !== "ai_rejected" ? (
+                  <CancelAssignmentDialog assignmentId={assignment.id} />
+                ) : null}
+              </>
+            ) : null}
+            {canDelete ? <DeleteAssignmentDialog accoId={assignment.accoId} assignmentId={assignment.id} /> : null}
+          </div>
         </div>
       </div>
 
@@ -113,6 +151,16 @@ export function AssignmentDetailScreen({
               canManageStatus={canManageStatus}
               qcGuard={qcGuard}
             />
+            {assignment.status === "ai_rejected" && assignment.cancelReason ? (
+              <div>
+                <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Reden van annuleren
+                </h2>
+                <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-foreground">
+                  {assignment.cancelReason}
+                </p>
+              </div>
+            ) : null}
             {assignment.legacyNotes ? (
               <div>
                 <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -28,6 +28,9 @@ export default async function AssignmentDetailPage({
     reviewsResult,
     findingsResult,
     issueTypesResult,
+    rawAssignmentResult,
+    editorsResult,
+    expertsResult,
   ] = await Promise.all([
     supabase.from("v_assignments").select("*").eq("id", id).maybeSingle(),
     supabase.from("edit_items").select("*").eq("assignment_id", id).order("photo_number"),
@@ -39,6 +42,11 @@ export default async function AssignmentDetailPage({
     supabase.from("qc_reviews").select("*").eq("assignment_id", id).order("round", { ascending: false }),
     supabase.from("qc_findings").select("*, qc_reviews!inner(assignment_id)").eq("qc_reviews.assignment_id", id),
     supabase.from("qc_issue_types").select("code, label_nl"),
+    // v_assignments toont alleen namen; het bewerken-paneel heeft de ruwe
+    // FK-id's nodig om de select-velden correct voor te selecteren.
+    supabase.from("assignments").select("editor_id, rental_expert_id").eq("id", id).maybeSingle(),
+    supabase.from("editors").select("id, name").eq("is_active", true).order("name"),
+    supabase.from("rental_experts").select("id, name").eq("is_active", true).order("name"),
   ]);
 
   if (!assignmentResult.data) notFound();
@@ -98,14 +106,19 @@ export default async function AssignmentDetailPage({
   return (
     <AssignmentDetailScreen
       assignment={assignment}
+      canDelete={user?.role === "admin"}
       canManageStatus={user?.role === "admin" || user?.role === "coordinator"}
+      currentEditorId={rawAssignmentResult.data?.editor_id ?? null}
+      currentRentalExpertId={rawAssignmentResult.data?.rental_expert_id ?? null}
       editItems={editItems}
+      editors={editorsResult.data ?? []}
       goals={goalsResult.data ?? []}
       guidelines={guidelinesResult.data ?? []}
       magnificBaseUrl={magnificBaseUrl}
       maxPhotosPerProperty={maxPhotos}
       prompts={promptsResult.data ?? []}
       qcRounds={rounds}
+      rentalExperts={expertsResult.data ?? []}
     />
   );
 }
