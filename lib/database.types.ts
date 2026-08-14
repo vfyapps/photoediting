@@ -869,6 +869,13 @@ export type Database = {
         }
         Relationships: []
       }
+      v_savings: {
+        Row: {
+          approved_summer_to_winter: number | null
+          total_summer_to_winter: number | null
+        }
+        Relationships: []
+      }
       v_team_average: {
         Row: {
           approval_pct: number | null

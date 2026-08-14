@@ -6,42 +6,46 @@ type StatusRow = { status: string | null; aantal: number | null; pct: number | n
 /**
  * Eén primair getal, de rest ondergeschikt — precies het omgekeerde van het
  * oude Excel-dashboard, waar zes blokken even luid waren (AGENTS.md,
- * Screen 6). "Open in QC" is het getal dat een coördinator dagelijks checkt,
- * dus dat is de hero; approval rate, doorlooptijd en foto's staan er klein
- * naast.
+ * Screen 6). Sinds V3-WP4 is de besparing de hero: dat is het antwoord op de
+ * begrotingsoverschrijding uit de eigen rapportage van de eigenaar
+ * (BUILDPLAN-V3.md §2), en dus het signature-moment van dit scherm. "Open in
+ * QC" — de vorige hero — schuift door naar de ondergeschikte rij.
  */
 export function HeroStats({
   statusRows,
   approvalPct,
   avgCycleDays,
   totalPhotosCompleted,
+  approvedSavingsCount,
+  avoidedShootCostEur,
 }: {
   statusRows: StatusRow[];
   approvalPct: number | null;
   avgCycleDays: number | null;
   totalPhotosCompleted: number;
+  approvedSavingsCount: number;
+  avoidedShootCostEur: number;
 }) {
   const openInQc = statusRows.find((row) => row.status === "qc")?.aantal ?? 0;
+  const totalSavings = approvedSavingsCount * avoidedShootCostEur;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
       <div className="rounded-md border border-border bg-card p-5">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Open in QC
+          Vermeden fotografiekosten dit seizoen
         </p>
         <p className="mt-1 font-display text-5xl font-extrabold tabular-nums text-foreground">
-          {openInQc}
+          €{totalSavings.toLocaleString("nl-NL")}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {openInQc === 0
-            ? "Niets wacht op beoordeling."
-            : openInQc === 1
-              ? "opdracht wacht op beoordeling."
-              : "opdrachten wachten op beoordeling."}
+          {approvedSavingsCount} vermeden shoots × €{avoidedShootCostEur.toLocaleString("nl-NL")} — alleen
+          goedgekeurde AI-winterimpressies op AT-woningen.
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <SubordinateStat label="Open in QC" value={openInQc} />
         <SubordinateStat label="Approval rate" value={approvalPct !== null ? `${approvalPct}%` : "—"} />
         <SubordinateStat
           label="Gem. doorlooptijd"

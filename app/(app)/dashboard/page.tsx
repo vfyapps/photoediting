@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { CostPerEditCard } from "@/components/dashboard/cost-per-edit-card";
 import { EditorPerformanceTable } from "@/components/dashboard/editor-performance-table";
 import { ExportLink } from "@/components/dashboard/export-link";
 import { GoalUsageChart } from "@/components/dashboard/goal-usage-chart";
@@ -27,6 +28,8 @@ export default async function DashboardPage() {
     completedResult,
     issuesResult,
     cycleTimeResult,
+    savingsResult,
+    settingsResult,
   ] = await Promise.all([
     supabase.from("v_dashboard_status").select("*"),
     supabase.from("v_editor_performance").select("*").order("editor"),
@@ -35,6 +38,11 @@ export default async function DashboardPage() {
     supabase.from("v_monthly_completed").select("*"),
     supabase.from("v_qc_issue_frequency").select("*"),
     supabase.from("v_cycle_time").select("*").eq("fase", "approved").maybeSingle(),
+    supabase.from("v_savings").select("*").maybeSingle(),
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["avoided_shoot_cost_eur", "monthly_editing_cost_eur"]),
   ]);
 
   const statusRows = statusResult.data ?? [];
@@ -47,6 +55,16 @@ export default async function DashboardPage() {
     0,
   );
 
+  const settingsByKey = new Map((settingsResult.data ?? []).map((s) => [s.key, s.value]));
+  const avoidedShootCostEur = Number.parseFloat(settingsByKey.get("avoided_shoot_cost_eur") ?? "") || 137;
+  const monthlyEditingCostEur = Number.parseFloat(settingsByKey.get("monthly_editing_cost_eur") ?? "") || 215.55;
+
+  const completedMonths = [...(completedResult.data ?? [])].sort(
+    (a, b) => new Date(b.maand ?? 0).getTime() - new Date(a.maand ?? 0).getTime(),
+  );
+  const completedThisMonth = completedMonths[0]?.afgerond_woningen ?? 0;
+  const completedLastMonth = completedMonths[1]?.afgerond_woningen ?? null;
+
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
@@ -57,9 +75,18 @@ export default async function DashboardPage() {
 
       <HeroStats
         approvalPct={approvalPct}
+        approvedSavingsCount={savingsResult.data?.approved_summer_to_winter ?? 0}
         avgCycleDays={cycleTimeResult.data?.gem_dagen ?? null}
+        avoidedShootCostEur={avoidedShootCostEur}
         statusRows={statusRows}
         totalPhotosCompleted={totalPhotosCompleted}
+      />
+
+      <CostPerEditCard
+        avoidedShootCostEur={avoidedShootCostEur}
+        completedLastMonth={completedLastMonth}
+        completedThisMonth={completedThisMonth}
+        monthlyEditingCostEur={monthlyEditingCostEur}
       />
 
       <section className="flex flex-col gap-3">
