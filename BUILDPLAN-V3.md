@@ -329,7 +329,87 @@ de bestaande guards lopen zodat het auditspoor in `status_events` klopt.
 **Klaar wanneer:** een verkeerd geïmporteerde opdracht volledig te corrigeren is
 zonder SQL, en een verwijdering niet per ongeluk kan gebeuren.
 
-### V3-WP6 — Optimalisaties uit de review
+### V3-WP6 — Kaart van alle shoots *(nieuw, gevraagd 2026-08-14)*
+
+Wouter: "op basis van de postcodes in acco id's een worldmap maken van alle
+shoots." Kan, en de data blijkt er uitzonderlijk geschikt voor. Vooraf gemeten,
+niet aangenomen:
+
+| Bevinding | Waarde |
+|---|---|
+| Acco-id's die parsen als `LAND.POSTCODE.NR` | **954 van 954 (100%)** |
+| Postcodelengte per land | AT/BE/NL 4 cijfers, DE/FR 5 — klopt met de nationale conventie |
+| Unieke postcodes over xlsx + app samen | 280 (waarvan 3 `XX`-placeholders) |
+| **Al gegeocodeerd tegen GeoNames** | **279 van 280** |
+| Enige misser | `FR.83583` — een Cedex-code, staat niet in de GeoNames-basisset |
+| Shoots per postcode | max 51, mediaan 1 |
+
+**Het is geen wereldkaart, en dat is belangrijk.** De bounding box van alle 279
+gegeocodeerde punten is 42,0°–54,1° NB en −1,4°–14,9° OL: Frankrijk-zuid tot de
+Oostzee. Op een wereldkaart beslaat dat **0,30% van het canvas** — 99,7% van het
+beeld zou leeg water en Siberië zijn, en alle 280 punten kruipen samen tot één
+onleesbare vlek. Het wordt dus een kaart van West- en Midden-Europa, met de
+projectie op die bounding box gefit. Zodra er ooit een woning buiten dat gebied
+bij komt, past de kaart zich aan (de projectie wordt uit de data berekend, niet
+hardcoded).
+
+1. **Geocoding als vaste tabel, niet als runtime-API.** 280 postcodes is klein
+   genoeg om één keer op te zoeken en te committen. Bron: de GeoNames
+   postcode-dump (CC BY 4.0, gratis, per land) — geen API-key, geen rate limit,
+   geen netwerkafhankelijkheid in productie. Een script in `scripts/` genereert
+   `lib/postcode-coords.json` zodat het reproduceerbaar is; de app leest alleen
+   het resultaat.
+   *Nieuwe postcodes na een volgende import* die niet in de tabel staan, worden
+   niet stil genegeerd maar getoond als "niet gegeocodeerd" in het beheerscherm —
+   exact hetzelfde patroon als de onbekende expert-aliassen uit WP3.
+   `FR.83583` en de drie `XX`-codes zijn de eerste bewoners van dat lijstje.
+
+2. **De import moet álle rijen bewaren, niet alleen de kandidaten.** Dit is de
+   echte architectuurvraag die deze functie oproept, en het antwoord verbetert
+   ook WP3. Nu gooit de import 769 van de 865 rijen weg. Gevolg: de app kent 342
+   acco-id's, de Ares-export 754, met maar 142 overlap — een kaart op alleen de
+   app-data toont **36% van de werkelijkheid**.
+   Voorstel: een tabel `ares_shoots` (één rij per `ares_row_key`, met status,
+   tasks, fotograaf, land, postcode, datum), bij elke import ge-upsert. Dat
+   levert drie dingen tegelijk:
+   - de kaart kan alle 954 woningen tonen in plaats van 342;
+   - de winter-overlapcheck uit WP3 wordt een databasequery in plaats van een
+     herberekening uit het bestand, en werkt dan ook tussen twee imports door;
+   - je houdt historie van wat Ares wanneer meldde, zonder de xlsx te bewaren.
+
+3. **Vorm: proportionele-symbolenkaart, geen choropleth.** Eén punt per
+   postcode, oppervlakte (niet straal) evenredig met het aantal shoots — met max
+   51 en mediaan 1 moet dat op √-schaal, anders verdwijnt de lange staart van
+   enkelingen volledig. Choropleth valt af: 280 punten verdeeld over 5 landen
+   zegt niets op landniveau, en regiogrenzen hebben we niet.
+   Overlappende punten in de Alpen krijgen een 2px-ring in de achtergrondkleur,
+   zodat een cluster leesbaar blijft (`dataviz`-skill, mark specs).
+
+4. **Kleur codeert de businesscase, niet de decoratie.** De kaart beantwoordt
+   twee vragen tegelijk: *waar zit onze fotografie-inspanning* (grootte) en
+   *waar liggen nog AI-winterkansen* (kleur). Een punt met openstaande
+   summer→winter-kandidaten krijgt de accentkleur, de rest blijft neutraal. Zo
+   is de kaart een werkinstrument in plaats van een plaatje — en sluit hij aan
+   op het hero-getal uit WP4.
+
+5. **Techniek, bewust licht.** `d3-geo` voor de projectie plus een
+   vereenvoudigde landen-TopoJSON van de vijf landen; renderen als gewone
+   inline-SVG. Géén Leaflet/MapLibre: dat trekt tiles van een externe server bij
+   elke paginaweergave, wat een netwerkafhankelijkheid en een privacylek naar
+   een derde partij introduceert voor wat in feite een statisch kaartje is.
+   Hover-tooltip met postcode, plaatsnaam en aantallen; klik filtert de
+   opdrachtenlijst op die postcode.
+
+6. **Plek: eigen sectie op het dashboard** (coordinator/admin, zoals de rest van
+   dat scherm). Geen apart menu-item — het is context bij de cijfers, geen
+   dagelijkse werkplek.
+
+**Klaar wanneer:** de kaart toont alle gegeocodeerde woningen met correcte
+verhoudingen; een onbekende postcode verschijnt in het beheerscherm in plaats
+van stil te verdwijnen; en klikken op een punt opent de gefilterde
+opdrachtenlijst.
+
+### V3-WP7 — Optimalisaties uit de review
 
 Op volgorde van opbrengst:
 
@@ -350,7 +430,7 @@ Op volgorde van opbrengst:
    bij jou (WP6 heeft ze gedocumenteerd, niet opgelost) — vijf acco-id's waar een
    Excel-kommagetal misschien verkeerd als twee fotonummers is gelezen.
 
-### V3-WP7 — Waarheidsronde
+### V3-WP8 — Waarheidsronde
 
 Zoals v2-WP6: volledige testsuite in één sessie, verificatieronde over alle
 schermen in beide thema's op drie breekpunten, `AGENTS.md` bijwerken met de
@@ -400,10 +480,11 @@ tests per pakket, commit per pakket):
 | 3 — Ares-import | groot | 2 |
 | 4 — Kosten | klein | 1 |
 | 5 — Opdrachten bewerken | middel | 1 |
-| 6 — Optimalisaties | middel | 1–2 |
-| 7 — Waarheidsronde | middel | 1 |
+| 6 — Kaart van alle shoots | middel | 1–2 |
+| 7 — Optimalisaties | middel | 1–2 |
+| 8 — Waarheidsronde | middel | 1 |
 
-**Totaal 9–10 sessies.** Ter kalibratie: v2 (WP0–WP6) was vergelijkbaar van
+**Totaal 10–12 sessies.** Ter kalibratie: v2 (WP0–WP6) was vergelijkbaar van
 omvang en kostte ongeveer evenveel. De token- en tijdinschatting van v2 bleek
 redelijk te kloppen; ik verwacht hier hetzelfde orde van grootte.
 
@@ -422,5 +503,6 @@ verhaal waar de app om vraagt.
 | 3 | Ares-import summer→winter | ✅ |
 | 4 | Kosten en besparing | ✅ |
 | 5 | Opdrachten bewerken | ⬜ |
-| 6 | Optimalisaties | ⬜ |
-| 7 | Waarheidsronde | ⬜ |
+| 6 | Kaart van alle shoots | ⬜ |
+| 7 | Optimalisaties | ⬜ |
+| 8 | Waarheidsronde | ⬜ |
