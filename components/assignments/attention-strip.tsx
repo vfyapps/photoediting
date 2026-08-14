@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Clock, UserX } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, ImageOff, UserX } from "lucide-react";
 
 export type AttentionData = {
   qcOverdueCount: number;
   highPriorityUnassignedCount: number;
+  missingPhotosCount: number;
   topIssue: { code: string; label: string; count: number; moduleSlug: string | null } | null;
 };
 
@@ -14,8 +15,8 @@ export type AttentionData = {
  * draait (issue → academy-module).
  */
 export function AttentionStrip({ attention }: { attention: AttentionData }) {
-  const { qcOverdueCount, highPriorityUnassignedCount, topIssue } = attention;
-  if (qcOverdueCount === 0 && highPriorityUnassignedCount === 0 && !topIssue) {
+  const { qcOverdueCount, highPriorityUnassignedCount, missingPhotosCount, topIssue } = attention;
+  if (qcOverdueCount === 0 && highPriorityUnassignedCount === 0 && missingPhotosCount === 0 && !topIssue) {
     return null;
   }
 
@@ -45,6 +46,15 @@ export function AttentionStrip({ attention }: { attention: AttentionData }) {
               : "hoge prioriteit zonder editor"
           }
           tone="critical"
+        />
+      ) : null}
+      {missingPhotosCount > 0 ? (
+        <AttentionCard
+          count={missingPhotosCount}
+          href="/?missing_photos=1"
+          icon={<ImageOff aria-hidden="true" className="size-4" />}
+          label={missingPhotosCount === 1 ? "opdracht wacht op fotonummers" : "opdrachten wachten op fotonummers"}
+          tone="warning"
         />
       ) : null}
       {topIssue ? (

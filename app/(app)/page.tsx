@@ -130,7 +130,17 @@ export default async function AssignmentsPage({
   }
   if (filters.priority) assignmentsQuery = assignmentsQuery.eq("priority", filters.priority);
   if (filters.goal) assignmentsQuery = assignmentsQuery.contains("goals", [filters.goal]);
-  if (filters.search) assignmentsQuery = assignmentsQuery.ilike("acco_id", `%${filters.search}%`);
+  if (filters.search) {
+    // .or() gebruikt komma's en haakjes als filtersyntax - die strippen uit
+    // de zoekterm zelf, anders breekt of misvormt een acco-id met een komma
+    // erin de filterexpressie.
+    const term = filters.search.replace(/[,()]/g, "");
+    if (term) {
+      assignmentsQuery = assignmentsQuery.or(
+        `acco_id.ilike.%${term}%,editor_name.ilike.%${term}%,rental_expert_name.ilike.%${term}%`,
+      );
+    }
+  }
   if (filters.qcIssue) {
     // Klik-door vanaf het dashboard (Top QC-issues): welke opdrachten hebben
     // ooit een bevinding van dit type gehad, over alle rondes.
@@ -180,7 +190,7 @@ export default async function AssignmentsPage({
     // open werk, niet over wat de gebruiker toevallig heeft ingesteld.
     supabase
       .from("v_assignments")
-      .select("id, status, priority, editor_name, request_date, date_completed, created_at")
+      .select("id, status, priority, editor_name, request_date, date_completed, created_at, photo_count")
       .in("status", openStatuses),
     supabase.from("v_qc_issue_frequency").select("code, label_nl, aantal"),
     // Geen is_published-filter: RLS (read_pub_guidelines) laat een editor
@@ -266,6 +276,7 @@ export default async function AssignmentsPage({
   const highPriorityUnassignedCount = openRows.filter(
     (row) => row.priority === "high" && !row.editor_name,
   ).length;
+  const missingPhotosCount = openRows.filter((row) => (row.photo_count ?? 0) === 0).length;
 
   const calloutThreshold = Number.parseInt(calloutThresholdResult.data?.value ?? "", 10) || 3;
   // Eén rij per qc_issue_code (er hoort er, dankzij de "geen duplicaat
@@ -285,6 +296,7 @@ export default async function AssignmentsPage({
   const attention: AttentionData = {
     qcOverdueCount,
     highPriorityUnassignedCount,
+    missingPhotosCount,
     topIssue: topIssue
       ? {
           code: topIssue.code,

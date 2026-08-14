@@ -291,11 +291,30 @@ export function AssignmentsScreen({
               <SlidersHorizontal className="size-4" /> Filters
               {activeFilterCount > 0 ? <CountPill value={activeFilterCount} /> : null}
             </div>
-            {activeFilterCount > 0 ? (
-              <Button onClick={clearFilters} size="sm" variant="ghost">
-                <FilterX className="size-4" /> Wissen
-              </Button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {canBulkManage && effectiveAssignments.length > 0 ? (
+                <Button
+                  onClick={() =>
+                    setSelectedIds(
+                      selectedIds.size === effectiveAssignments.length
+                        ? new Set()
+                        : new Set(effectiveAssignments.map((a) => a.id)),
+                    )
+                  }
+                  size="sm"
+                  variant="ghost"
+                >
+                  {selectedIds.size === effectiveAssignments.length
+                    ? "Selectie wissen"
+                    : `Selecteer alles (${effectiveAssignments.length})`}
+                </Button>
+              ) : null}
+              {activeFilterCount > 0 ? (
+                <Button onClick={clearFilters} size="sm" variant="ghost">
+                  <FilterX className="size-4" /> Wissen
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_repeat(5,minmax(130px,1fr))]">

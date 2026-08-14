@@ -439,12 +439,23 @@ Op volgorde van opbrengst:
 4. **Auditspoor voor beheeracties.** `status_events` dekt opdrachten, maar een
    rolwijziging of verwijderde gebruiker is nergens terug te zien. Tabel
    `admin_events` (actor, actie, doel, tijdstip).
-5. **Bordprestaties bij ~590 opdrachten.** De tabel is gevirtualiseerd, het bord
-   niet. Na de import verdubbelt het volume bijna. Meten en zo nodig per kolom
-   virtualiseren.
+5. **Bordprestaties bij ~590 opdrachten.** ✅ *Gemeten, niet gevirtualiseerd —
+   nog niet nodig.* De tabel is gevirtualiseerd, het bord niet. Het bord toont
+   default alleen `new`/`in_process`/`qc`/`denied` (niet backlog/archief):
+   live gemeten 71 opdrachten in die vier kolommen samen, en met de ~96
+   nieuwe AT-opdrachten uit een volledige WP3-import erbij ~167 — vrijwel
+   allemaal in de kolom `new`. De 590 uit de eerste versie van dit plan was
+   het hele-tabel-totaal, niet wat het bord toont. Kaarten gebruiken dnd-kit's
+   lichte `useDraggable` (niet `useSortable`) en geen zware geneste content
+   (de foto-checklist is dichtgeklapt tenzij aangeklikt) — dat blijft op deze
+   schaal ruim binnen wat dnd-kit zonder virtualisatie aankan. Concrete
+   drempel om op terug te komen: virtualiseer zodra één kolom structureel
+   boven de ~150 kaarten uitkomt.
 6. **De vijf migratiewaarschuwingen** uit `docs/migratie_log.txt` staan nog open
    bij jou (WP6 heeft ze gedocumenteerd, niet opgelost) — vijf acco-id's waar een
-   Excel-kommagetal misschien verkeerd als twee fotonummers is gelezen.
+   Excel-kommagetal misschien verkeerd als twee fotonummers is gelezen. Geen
+   nieuwe actie hier: nog steeds bij jou, met de exacte acco-id/goal-koppelingen
+   in dat bestand.
 
 ### V3-WP8 — Waarheidsronde
 
@@ -521,5 +532,5 @@ verhaal waar de app om vraagt.
 | 4 | Kosten en besparing | ✅ |
 | 5 | Opdrachten bewerken | ✅ |
 | 6 | Shootplanner-kaart (fotografen, afstanden, ares_shoots) | ✅ |
-| 7 | Optimalisaties | ⬜ |
+| 7 | Optimalisaties | ✅ |
 | 8 | Waarheidsronde | ⬜ |

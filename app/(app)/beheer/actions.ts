@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 
+import { logAdminEvent } from "@/lib/admin-events";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -107,6 +108,7 @@ export async function inviteUser(input: {
     return { ok: false, message: "Het gebruikersprofiel kon niet worden aangemaakt. Probeer opnieuw." };
   }
 
+  await logAdminEvent(admin, gate.user.id, "invite_user", `${parsed.data.email} (${parsed.data.role})`);
   revalidatePath("/beheer/gebruikers");
   return { ok: true };
 }
@@ -212,6 +214,7 @@ export async function updateUserRole(input: {
   const { error } = await supabase.from("app_users").update({ role: parsed.data.role }).eq("id", parsed.data.userId);
   if (error) return { ok: false, message: "De rol kon niet worden gewijzigd. Probeer opnieuw." };
 
+  await logAdminEvent(supabase, gate.user.id, "update_user_role", `${parsed.data.userId} -> ${parsed.data.role}`);
   revalidatePath("/beheer/gebruikers");
   return { ok: true };
 }
@@ -244,6 +247,12 @@ export async function setUserActive(input: { userId: string; isActive: boolean }
   });
   if (error) return { ok: false, message: friendlyAdminError(error) };
 
+  await logAdminEvent(
+    admin,
+    gate.user.id,
+    parsed.data.isActive ? "activate_user" : "deactivate_user",
+    parsed.data.userId,
+  );
   revalidatePath("/beheer/gebruikers");
   return { ok: true };
 }
@@ -272,6 +281,7 @@ export async function upsertEditor(input: { id: string | null; name: string; isA
     };
   }
 
+  await logAdminEvent(supabase, gate.user.id, parsed.data.id ? "update_editor" : "create_editor", parsed.data.name);
   revalidatePath("/beheer/editors");
   return { ok: true };
 }
@@ -292,6 +302,7 @@ export async function linkEditorToUser(input: { editorId: string; userId: string
     .eq("id", parsed.data.editorId);
   if (error) return { ok: false, message: "Koppelen mislukt. Probeer opnieuw." };
 
+  await logAdminEvent(supabase, gate.user.id, "link_editor_to_user", `${parsed.data.editorId} -> ${parsed.data.userId ?? "geen"}`);
   revalidatePath("/beheer/editors");
   return { ok: true };
 }
@@ -331,6 +342,7 @@ export async function upsertExpert(input: {
     };
   }
 
+  await logAdminEvent(supabase, gate.user.id, parsed.data.id ? "update_expert" : "create_expert", parsed.data.name);
   revalidatePath("/beheer/editors");
   return { ok: true };
 }
@@ -375,6 +387,7 @@ export async function upsertPhotographer(input: {
     };
   }
 
+  await logAdminEvent(supabase, gate.user.id, parsed.data.id ? "update_photographer" : "create_photographer", parsed.data.name);
   revalidatePath("/beheer/fotografen");
   revalidatePath("/kaart");
   return { ok: true };
@@ -395,6 +408,7 @@ export async function updateSetting(input: { key: string; value: string }): Prom
   const { error } = await supabase.from("app_settings").update({ value: parsed.data.value }).eq("key", parsed.data.key);
   if (error) return { ok: false, message: "Opslaan mislukt. Probeer opnieuw." };
 
+  await logAdminEvent(supabase, gate.user.id, "update_setting", `${parsed.data.key} = ${parsed.data.value}`);
   revalidatePath("/beheer/instellingen");
   revalidatePath("/");
   revalidatePath("/dashboard");
@@ -430,6 +444,7 @@ export async function upsertEditingGoal(input: {
   });
   if (error) return { ok: false, message: "Opslaan mislukt. Probeer opnieuw." };
 
+  await logAdminEvent(supabase, gate.user.id, "upsert_editing_goal", parsed.data.code);
   revalidatePath("/beheer/referentiedata");
   return { ok: true };
 }
@@ -461,6 +476,7 @@ export async function upsertQcIssueType(input: {
   });
   if (error) return { ok: false, message: "Opslaan mislukt. Probeer opnieuw." };
 
+  await logAdminEvent(supabase, gate.user.id, "upsert_qc_issue_type", parsed.data.code);
   revalidatePath("/beheer/referentiedata");
   revalidatePath("/qc");
   return { ok: true };

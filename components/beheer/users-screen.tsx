@@ -30,14 +30,37 @@ function formatLastSignIn(value: string | null) {
   return new Date(value).toLocaleDateString("nl-NL", { year: "numeric", month: "short", day: "numeric" });
 }
 
+type AdminEvent = { id: string; action: string; target: string; createdAt: string; actorName: string };
+
+const actionLabels: Record<string, string> = {
+  invite_user: "Gebruiker uitgenodigd",
+  update_user_role: "Rol gewijzigd",
+  activate_user: "Account geactiveerd",
+  deactivate_user: "Account gedeactiveerd",
+  create_editor: "Editor aangemaakt",
+  update_editor: "Editor gewijzigd",
+  link_editor_to_user: "Editor gekoppeld",
+  create_expert: "Verhuurexpert aangemaakt",
+  update_expert: "Verhuurexpert gewijzigd",
+  create_photographer: "Fotograaf aangemaakt",
+  update_photographer: "Fotograaf gewijzigd",
+  update_setting: "Instelling gewijzigd",
+  upsert_editing_goal: "Editing goal opgeslagen",
+  upsert_qc_issue_type: "QC-issuetype opgeslagen",
+  cancel_assignment: "Opdracht geannuleerd",
+  delete_assignment: "Opdracht verwijderd",
+};
+
 export function UsersScreen({
   users,
   canManage,
   currentUserId,
+  recentEvents,
 }: {
   users: AdminUserRow[];
   canManage: boolean;
   currentUserId: string;
+  recentEvents: AdminEvent[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -68,6 +91,20 @@ export function UsersScreen({
           </TableBody>
         </Table>
       )}
+
+      {canManage && recentEvents.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">Recente beheeracties</h2>
+          <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {recentEvents.map((event) => (
+              <li key={event.id}>
+                {new Date(event.createdAt).toLocaleString("nl-NL")} — {event.actorName}:{" "}
+                {actionLabels[event.action] ?? event.action} ({event.target})
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

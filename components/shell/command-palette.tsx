@@ -84,7 +84,7 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
       <CommandDialog label="Command palette" onOpenChange={handleOpenChange} open={open} shouldFilter={false}>
         <CommandInput
           onValueChange={setQuery}
-          placeholder="Zoek op acco ID, of typ een schermnaam…"
+          placeholder="Zoek op acco-id, editor of expert, of typ een schermnaam…"
           value={query}
         />
         <CommandList>
@@ -102,7 +102,9 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
                       value={result.id}
                     >
                       <span className="font-mono text-xs">{result.accoId}</span>
-                      <span className="text-xs text-muted-foreground">{result.status}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {result.editorName ? `${result.editorName} · ${result.status}` : result.status}
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandGroup>

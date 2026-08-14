@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAdminEvent } from "@/lib/admin-events";
 import { getCurrentUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -210,6 +211,7 @@ export async function cancelAssignment(input: { assignmentId: string; reason: st
     };
   }
 
+  await logAdminEvent(supabase, gate.user.id, "cancel_assignment", `${parsed.data.assignmentId}: ${parsed.data.reason}`);
   revalidatePath(`/opdrachten/${parsed.data.assignmentId}`);
   revalidatePath("/");
   return { ok: true };
@@ -246,6 +248,7 @@ export async function deleteAssignment(input: {
     };
   }
 
+  await logAdminEvent(supabase, user.id, "delete_assignment", `${parsed.data.accoId} (${parsed.data.assignmentId})`);
   revalidatePath("/");
   return { ok: true };
 }
