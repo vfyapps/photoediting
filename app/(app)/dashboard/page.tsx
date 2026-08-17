@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     volumeResult,
     completedResult,
     issuesResult,
-    cycleTimeResult,
+    teamAverageResult,
     savingsResult,
     settingsResult,
   ] = await Promise.all([
@@ -37,7 +37,13 @@ export default async function DashboardPage() {
     supabase.from("v_monthly_volume").select("*"),
     supabase.from("v_monthly_completed").select("*"),
     supabase.from("v_qc_issue_frequency").select("*"),
-    supabase.from("v_cycle_time").select("*").eq("fase", "approved").maybeSingle(),
+    // v_cycle_time meet doorlooptijd via lead() over status_events-overgangen:
+    // voor een eindstatus als "approved" bestaat vrijwel nooit een vólgende
+    // overgang, dus die rij valt structureel weg (BUILDPLAN-V4 §WP5.4 — de
+    // tegel toonde daardoor altijd "—", ook met 130 goedgekeurde opdrachten).
+    // v_team_average.gem_doorlooptijd_dagen middelt wél gewoon
+    // date_completed - request_date en is de juiste bron voor dit getal.
+    supabase.from("v_team_average").select("gem_doorlooptijd_dagen").maybeSingle(),
     supabase.from("v_savings").select("*").maybeSingle(),
     supabase
       .from("app_settings")
@@ -76,17 +82,18 @@ export default async function DashboardPage() {
       <HeroStats
         approvalPct={approvalPct}
         approvedSavingsCount={savingsResult.data?.approved_summer_to_winter ?? 0}
-        avgCycleDays={cycleTimeResult.data?.gem_dagen ?? null}
+        avgCycleDays={teamAverageResult.data?.gem_doorlooptijd_dagen ?? null}
         avoidedShootCostEur={avoidedShootCostEur}
+        costCard={
+          <CostPerEditCard
+            avoidedShootCostEur={avoidedShootCostEur}
+            completedLastMonth={completedLastMonth}
+            completedThisMonth={completedThisMonth}
+            monthlyEditingCostEur={monthlyEditingCostEur}
+          />
+        }
         statusRows={statusRows}
         totalPhotosCompleted={totalPhotosCompleted}
-      />
-
-      <CostPerEditCard
-        avoidedShootCostEur={avoidedShootCostEur}
-        completedLastMonth={completedLastMonth}
-        completedThisMonth={completedThisMonth}
-        monthlyEditingCostEur={monthlyEditingCostEur}
       />
 
       <section className="flex flex-col gap-3">

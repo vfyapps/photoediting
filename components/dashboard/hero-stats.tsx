@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { statusLabelsNl } from "@/lib/assignments";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +12,11 @@ type StatusRow = { status: string | null; aantal: number | null; pct: number | n
  * begrotingsoverschrijding uit de eigen rapportage van de eigenaar
  * (BUILDPLAN-V3.md §2), en dus het signature-moment van dit scherm. "Open in
  * QC" — de vorige hero — schuift door naar de ondergeschikte rij.
+ *
+ * De besparing en de kosten-per-bewerking zijn hetzelfde verhaal (dezelfde
+ * businesscase, twee kanten van de rekensom) en staan sinds V4-WP5 daarom
+ * naast elkaar in één rij, i.p.v. als twee losse blokken onder elkaar met de
+ * vier statustegels verdrukt ernaast (BUILDPLAN-V4 §WP5.1).
  */
 export function HeroStats({
   statusRows,
@@ -18,6 +25,7 @@ export function HeroStats({
   totalPhotosCompleted,
   approvedSavingsCount,
   avoidedShootCostEur,
+  costCard,
 }: {
   statusRows: StatusRow[];
   approvalPct: number | null;
@@ -25,23 +33,28 @@ export function HeroStats({
   totalPhotosCompleted: number;
   approvedSavingsCount: number;
   avoidedShootCostEur: number;
+  costCard: React.ReactNode;
 }) {
   const openInQc = statusRows.find((row) => row.status === "qc")?.aantal ?? 0;
   const totalSavings = approvedSavingsCount * avoidedShootCostEur;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-      <div className="rounded-md border border-border bg-card p-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Vermeden fotografiekosten dit seizoen
-        </p>
-        <p className="mt-1 font-display text-5xl font-extrabold tabular-nums text-foreground">
-          €{totalSavings.toLocaleString("nl-NL")}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {approvedSavingsCount} vermeden shoots × €{avoidedShootCostEur.toLocaleString("nl-NL")} — alleen
-          goedgekeurde AI-winterimpressies op AT-woningen.
-        </p>
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
+        <div className="rounded-md border border-border bg-card p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Vermeden fotografiekosten dit seizoen
+          </p>
+          <p className="mt-1 font-display text-5xl font-extrabold tabular-nums text-foreground">
+            €{totalSavings.toLocaleString("nl-NL")}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {approvedSavingsCount} vermeden shoots × €{avoidedShootCostEur.toLocaleString("nl-NL")} — alleen
+            goedgekeurde AI-winterimpressies op AT-woningen.
+          </p>
+        </div>
+
+        {costCard}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -54,18 +67,16 @@ export function HeroStats({
         <SubordinateStat label="Foto's afgerond" value={totalPhotosCompleted} />
       </div>
 
-      <div className="lg:col-span-2">
-        <StatusBreakdown rows={statusRows} />
-      </div>
+      <StatusBreakdown rows={statusRows} />
     </div>
   );
 }
 
 function SubordinateStat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-md border border-border bg-card px-3 py-3 text-center">
+    <div className="flex flex-col justify-center gap-1 rounded-md border border-border bg-card px-3 py-4 text-center">
       <p className="font-mono text-xl font-semibold tabular-nums text-foreground">{value}</p>
-      <p className="mt-0.5 text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -81,19 +92,34 @@ const statusDotClass: Record<string, string> = {
   ai_rejected: "bg-muted-foreground",
 };
 
+// approved/ai_rejected zitten standaard achter het archieffilter op het bord
+// (assignments-screen.tsx) — de link moet dat filter meteen aanzetten, anders
+// klik je door naar een lege lijst (BUILDPLAN-V4 §WP5.3).
+const archiveStatuses = new Set(["approved", "ai_rejected"]);
+
+function statusHref(status: string) {
+  const params = new URLSearchParams({ status });
+  if (archiveStatuses.has(status)) params.set("archive", "1");
+  return `/?${params.toString()}`;
+}
+
 function StatusBreakdown({ rows }: { rows: StatusRow[] }) {
   const byStatus = new Map(rows.map((row) => [row.status, row]));
 
   return (
-    <div className="flex flex-wrap gap-4 rounded-md border border-border bg-card px-4 py-3">
+    <div className="flex flex-wrap gap-1 rounded-md border border-border bg-card px-3 py-2">
       {statusOrder.map((status) => {
         const row = byStatus.get(status);
         return (
-          <div className="flex items-center gap-2 text-sm" key={status}>
+          <Link
+            className="flex items-center gap-2 rounded-sm px-2 py-1 text-sm transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+            href={statusHref(status)}
+            key={status}
+          >
             <span className={cn("size-2 rounded-full", statusDotClass[status])} />
             <span className="text-muted-foreground">{statusLabelsNl[status]}</span>
             <span className="font-mono font-semibold tabular-nums">{row?.aantal ?? 0}</span>
-          </div>
+          </Link>
         );
       })}
     </div>
