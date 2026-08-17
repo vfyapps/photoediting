@@ -21,11 +21,22 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 function CommandDialog({
   className,
   overlayClassName,
+  contentClassName,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Dialog> & { overlayClassName?: string }) {
+}: React.ComponentProps<typeof CommandPrimitive.Dialog>) {
   return (
     <CommandPrimitive.Dialog
-      className="fixed inset-0 z-50"
+      // cmdk stuurt `className` door naar het command-root-element BINNEN de
+      // dialoog, niet naar de dialoogpositionering — die hoort bij
+      // `contentClassName`. Hier stond per ongeluk de fixed/inset-positionering
+      // op `className`, waardoor de content instortte tot hoogte 0 binnen
+      // Dialog.Content (die door zijn eigen -translate-x-1/2 een nieuw
+      // containing block vormt) en de zoekbox onzichtbaar werd, terwijl de
+      // overlay wel gewoon rendert. Zie de bugfix-toelichting bij dit component.
+      className={cn(
+        "flex h-full w-full flex-col overflow-hidden rounded-lg bg-card text-card-foreground",
+        className,
+      )}
       overlayClassName={cn(
         "fixed inset-0 z-50 bg-foreground/40 duration-fast ease-standard data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         overlayClassName,
@@ -33,7 +44,7 @@ function CommandDialog({
       contentClassName={cn(
         "fixed left-1/2 top-[18%] z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-card shadow-lg",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        className,
+        contentClassName,
       )}
       {...props}
     />
