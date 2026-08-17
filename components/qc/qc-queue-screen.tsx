@@ -62,8 +62,8 @@ export function QcQueueScreen({
       <div className="flex flex-col gap-6">
         <PageHeader
           description="De QC-wachtrij, met bevindingen per foto en sneltoetsen om snel door te lopen."
-          eyebrow="Kwaliteitscontrole"
-          title="QC"
+          eyebrow="Controle"
+          title="Kwaliteitscontrole"
         />
         <EmptyState
           description="Er staat op dit moment niets in QC. Zodra een editor een opdracht inlevert, verschijnt die hier."

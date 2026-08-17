@@ -319,12 +319,12 @@ export function AssignmentsScreen({
 
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_repeat(5,minmax(130px,1fr))]">
             <label className="relative">
-              <span className="sr-only">Zoeken op acco ID</span>
+              <span className="sr-only">Zoeken op acco-ID, editor of expert</span>
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
               <input
                 className={cn(inputClassName, "w-full pl-8")}
                 onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Zoek op acco ID"
+                placeholder="Zoek op acco-ID, editor of expert"
                 type="search"
                 value={searchDraft}
               />
