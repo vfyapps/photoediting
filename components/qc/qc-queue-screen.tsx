@@ -37,6 +37,9 @@ export function QcQueueScreen({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      // Zonder deze check ving "k" ook Ctrl+K/Cmd+K af en sprong de wachtrij
+      // door in plaats van de command palette te laten openen.
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       const typing = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.tagName === "SELECT";
       if (typing) return;
