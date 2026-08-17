@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { AlertTriangle, ChevronDown } from "lucide-react";
 
-import { PriorityBadge } from "@/components/assignments/assignment-card";
+import { ageColorClassName, PriorityBadge } from "@/components/assignments/assignment-card";
 import { EditItemsChecklist } from "@/components/assignments/edit-items-checklist";
 import { ProgressBar } from "@/components/assignments/progress-bar";
 import { avatarColorVar } from "@/lib/avatar-color";
@@ -36,6 +36,11 @@ const statusLabels: Record<AssignmentStatus, string> = {
 // flow: "Editor mag zetten: in_process, qc"). Coordinator/admin mag alle
 // vier — RLS blokkeert een niet-toegestane write alsnog als laatste vangnet.
 const editorDroppableStatuses = new Set<AssignmentStatus>(["in_process", "qc"]);
+
+// Een kolom met 160+ kaarten renderen kost tijd en scrollruimte zonder dat
+// iemand ze allemaal leest. Cap per kolom, met een expliciete "Toon alle"-knop
+// (BUILDPLAN-V4 §WP3.3).
+const COLUMN_CAP = 25;
 
 export function Board({
   assignments,
@@ -64,6 +69,7 @@ export function Board({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor),
   );
+  const [expandedColumns, setExpandedColumns] = useState<Set<AssignmentStatus>>(new Set());
 
   function handleDragEnd(event: DragEndEvent) {
     const nextStatus = event.over?.id as AssignmentStatus | undefined;
@@ -106,19 +112,35 @@ export function Board({
                       Geen opdrachten
                     </p>
                   ) : (
-                    group.assignments.map((assignment) => (
-                      <BoardCard
-                        assignment={assignment}
-                        canBulkManage={canBulkManage}
-                        editItems={editItemsByAssignment.get(assignment.id) ?? []}
-                        goalLabels={goalLabels}
-                        key={assignment.id}
-                        onSelect={onSelect}
-                        qcReminderDays={qcReminderDays}
-                        selected={selectedIds.has(assignment.id)}
-                        today={today}
-                      />
-                    ))
+                    <>
+                      {(expandedColumns.has(status)
+                        ? group.assignments
+                        : group.assignments.slice(0, COLUMN_CAP)
+                      ).map((assignment) => (
+                        <BoardCard
+                          assignment={assignment}
+                          canBulkManage={canBulkManage}
+                          editItems={editItemsByAssignment.get(assignment.id) ?? []}
+                          goalLabels={goalLabels}
+                          key={assignment.id}
+                          onSelect={onSelect}
+                          qcReminderDays={qcReminderDays}
+                          selected={selectedIds.has(assignment.id)}
+                          today={today}
+                        />
+                      ))}
+                      {!expandedColumns.has(status) && group.assignments.length > COLUMN_CAP ? (
+                        <button
+                          className="w-full border-t border-border px-3 py-2 text-center text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                          onClick={() =>
+                            setExpandedColumns((prev) => new Set(prev).add(status))
+                          }
+                          type="button"
+                        >
+                          Toon alle {group.assignments.length}
+                        </button>
+                      ) : null}
+                    </>
                   )}
                 </div>
               </BoardColumn>
@@ -250,11 +272,11 @@ function BoardCard({
               </span>
               <span className="max-w-28 truncate text-xs text-muted-foreground">{editorName}</span>
             </div>
-            <div className="flex shrink-0 items-center gap-1 text-xs tabular-nums text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-1 text-xs tabular-nums">
               {needsQcAttention ? (
                 <AlertTriangle aria-label="QC wacht langer dan ingesteld" className="size-3.5 text-warning" />
               ) : null}
-              {days}d
+              <span className={ageColorClassName(days)}>{days}d</span>
             </div>
           </div>
 

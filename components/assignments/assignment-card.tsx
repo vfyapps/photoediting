@@ -103,14 +103,14 @@ export function AssignmentCard({
         </span>
       </div>
 
-      <div className="flex w-10 shrink-0 items-center justify-end gap-1 text-right text-xs tabular-nums text-muted-foreground">
+      <div className="flex w-10 shrink-0 items-center justify-end gap-1 text-right text-xs tabular-nums">
         {needsQcAttention ? (
           <AlertTriangle
             aria-label="QC wacht langer dan ingesteld"
             className="size-3.5 text-warning"
           />
         ) : null}
-        <span>{daysOpen}d</span>
+        <span className={ageColorClassName(daysOpen)}>{daysOpen}d</span>
       </div>
     </article>
   );
@@ -120,8 +120,33 @@ export function StatusBadge({ status }: { status: AssignmentListItem["status"] }
   return <Chip status={statusChip[status]}>{status}</Chip>;
 }
 
+// Alleen Hoog krijgt een gekleurde badge. Op het bord draagt vrijwel elke
+// kaart "Gemiddeld" — als alles opvalt, valt niets meer op (BUILDPLAN-V4
+// §WP3.1). Gemiddeld wordt een stil stipje met tooltip, Laag toont niets.
 export function PriorityBadge({ priority }: { priority: AssignmentListItem["priority"] }) {
-  return <Badge status={priorityBadge[priority]}>{priorityLabels[priority]}</Badge>;
+  if (priority === "high") {
+    return <Badge status={priorityBadge[priority]}>{priorityLabels[priority]}</Badge>;
+  }
+  if (priority === "medium") {
+    return (
+      <span
+        aria-label={priorityLabels.medium}
+        className="size-1.5 shrink-0 rounded-full bg-warning/60"
+        title={priorityLabels.medium}
+      />
+    );
+  }
+  return null;
+}
+
+const ageThresholds = { warn: 30, critical: 90 };
+
+// Leeftijd kleurt vanaf een drempel, zodat "213d" opvalt naast "2d" zonder
+// er nog een badge bij te zetten (BUILDPLAN-V4 §WP3.2).
+export function ageColorClassName(days: number) {
+  if (days > ageThresholds.critical) return "text-destructive font-semibold";
+  if (days > ageThresholds.warn) return "text-warning";
+  return "text-muted-foreground";
 }
 
 function initials(name: string) {

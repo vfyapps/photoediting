@@ -100,12 +100,13 @@ function AttentionCard({
 
   return (
     <Link
-      className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium transition-[transform,box-shadow] duration-fast ease-standard hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${toneClasses}`}
+      className={`group flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium transition-[transform,box-shadow] duration-fast ease-standard hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${toneClasses}`}
       href={href}
     >
       {icon}
       <span className="font-mono tabular-nums">{count}</span>
       <span className="font-body font-normal text-foreground">{label}</span>
+      <ArrowRight aria-hidden="true" className="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }

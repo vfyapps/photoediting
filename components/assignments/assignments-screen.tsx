@@ -252,6 +252,11 @@ export function AssignmentsScreen({
                   editor: filters.mine ? undefined : null,
                 })
               }
+              title={
+                currentEditorName
+                  ? undefined
+                  : "Beschikbaar zodra je aan een editorprofiel bent gekoppeld."
+              }
             />
             <QuickFilter
               active={filters.priority === "high"}
@@ -270,17 +275,16 @@ export function AssignmentsScreen({
                 })
               }
             />
-            <QuickFilter
-              active={filters.missingPhotos}
-              label="Wacht op fotonummers"
-              onClick={() =>
-                replaceParams({ missing_photos: filters.missingPhotos ? null : "1" })
-              }
-            />
-            {!currentEditorName ? (
-              <span className="text-xs text-muted-foreground">
-                Mijn opdrachten is beschikbaar zodra je aan een editorprofiel bent gekoppeld.
-              </span>
+            {filters.missingPhotos ? (
+              // Deze chip is normaal verborgen: de attentiestrook hierboven
+              // draagt dezelfde actie mét teller (BUILDPLAN-V4 §WP3.6). Alleen
+              // zichtbaar als iemand hem via de URL heeft geactiveerd, zodat
+              // "wissen" mogelijk blijft.
+              <QuickFilter
+                active
+                label="Wacht op fotonummers"
+                onClick={() => replaceParams({ missing_photos: null })}
+              />
             ) : null}
           </div>
         </section>
@@ -396,6 +400,9 @@ export function AssignmentsScreen({
           className={cn(
             "pt-4 transition-opacity",
             isNavigating && "pointer-events-none opacity-60",
+            // De zwevende bulk-balk hangt over de onderste rij; ruimte
+            // vrijhouden zodra hij zichtbaar is (BUILDPLAN-V4 §WP3.4).
+            canBulkManage && selectedIds.size > 0 && "pb-24",
           )}
         >
           {effectiveAssignments.length === 0 ? (
@@ -557,11 +564,13 @@ function QuickFilter({
   disabled = false,
   label,
   onClick,
+  title,
 }: {
   active: boolean;
   disabled?: boolean;
   label: string;
   onClick: () => void;
+  title?: string;
 }) {
   return (
     <button
@@ -575,6 +584,7 @@ function QuickFilter({
       )}
       disabled={disabled}
       onClick={onClick}
+      title={title}
       type="button"
     >
       {label}
