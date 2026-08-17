@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { priorityLabels } from "@/lib/assignments";
@@ -185,37 +186,37 @@ export function CancelAssignmentDialog({ assignmentId }: { assignmentId: string 
   }
 
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="ghost">
-          <XCircle className="size-4" />
-          Annuleren
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Opdracht annuleren</DialogTitle>
-        </DialogHeader>
-        <p className="pt-2 text-sm text-muted-foreground">
-          Zet deze opdracht op &quot;AI afgewezen&quot;, buiten de QC-flow om. Bijvoorbeeld bij een dubbel
-          geïmporteerde of verkeerde woning. Geef een reden op — die is zichtbaar op het detailscherm.
-        </p>
-        <div className="pt-2">
-          <Field label="Reden">
-            <textarea
-              className={textareaClassName}
-              onChange={(event) => setReason(event.target.value)}
-              value={reason}
-            />
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button disabled={isPending || !reason.trim()} onClick={submit} variant="destructive">
-            {isPending ? "Bezig…" : "Annuleren bevestigen"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <DropdownMenuItem onSelect={() => setOpen(true)}>
+        <XCircle className="size-4" />
+        Opdracht annuleren
+      </DropdownMenuItem>
+      <Dialog onOpenChange={setOpen} open={open}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Opdracht annuleren</DialogTitle>
+          </DialogHeader>
+          <p className="pt-2 text-sm text-muted-foreground">
+            Zet deze opdracht op &quot;AI afgewezen&quot;, buiten de QC-flow om. Bijvoorbeeld bij een dubbel
+            geïmporteerde of verkeerde woning. Geef een reden op — die is zichtbaar op het detailscherm.
+          </p>
+          <div className="pt-2">
+            <Field label="Reden">
+              <textarea
+                className={textareaClassName}
+                onChange={(event) => setReason(event.target.value)}
+                value={reason}
+              />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button disabled={isPending || !reason.trim()} onClick={submit} variant="destructive">
+              {isPending ? "Bezig…" : "Annuleren bevestigen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -238,39 +239,42 @@ export function DeleteAssignmentDialog({ assignmentId, accoId }: { assignmentId:
   }
 
   return (
-    <Dialog
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setConfirmText("");
-      }}
-      open={open}
-    >
-      <DialogTrigger asChild>
-        <Button size="sm" variant="ghost">
-          <Trash2 className="size-4 text-destructive" />
-          Verwijderen
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Opdracht permanent verwijderen</DialogTitle>
-        </DialogHeader>
-        <p className="flex items-start gap-2 pt-2 text-sm text-destructive">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-          Dit kan niet ongedaan worden gemaakt. Alle foto&apos;s, QC-historie en statusgeschiedenis van deze
-          opdracht worden ook verwijderd.
-        </p>
-        <div className="pt-2">
-          <Field hint={`Typ "${accoId}" om te bevestigen`} label="Acco-id">
-            <Input onChange={(event) => setConfirmText(event.target.value)} value={confirmText} />
-          </Field>
-        </div>
-        <DialogFooter>
-          <Button disabled={isPending || confirmText !== accoId} onClick={submit} variant="destructive">
-            {isPending ? "Bezig…" : "Definitief verwijderen"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <DropdownMenuItem
+        className="text-destructive focus:text-destructive"
+        onSelect={() => setOpen(true)}
+      >
+        <Trash2 className="size-4" />
+        Verwijderen
+      </DropdownMenuItem>
+      <Dialog
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setConfirmText("");
+        }}
+        open={open}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Opdracht permanent verwijderen</DialogTitle>
+          </DialogHeader>
+          <p className="flex items-start gap-2 pt-2 text-sm text-destructive">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            Dit kan niet ongedaan worden gemaakt. Alle foto&apos;s, QC-historie en statusgeschiedenis van deze
+            opdracht worden ook verwijderd.
+          </p>
+          <div className="pt-2">
+            <Field hint={`Typ "${accoId}" om te bevestigen`} label="Acco-id">
+              <Input onChange={(event) => setConfirmText(event.target.value)} value={confirmText} />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button disabled={isPending || confirmText !== accoId} onClick={submit} variant="destructive">
+              {isPending ? "Bezig…" : "Definitief verwijderen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, Pencil } from "lucide-react";
+import { ArrowLeft, ExternalLink, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateAssignmentStatus } from "@/app/actions";
@@ -19,6 +19,11 @@ import { QcHistory, type QcRound } from "@/components/assignment-detail/qc-histo
 import { SelfCheckDialog } from "@/components/assignment-detail/self-check-dialog";
 import { Badge, Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { AssignmentDetail, AssignmentStatus, EditItem } from "@/lib/assignments";
 import { priorityLabels, statusLabelsNl } from "@/lib/assignments";
 import { canSubmitToQc } from "@/lib/workflow";
@@ -111,24 +116,35 @@ export function AssignmentDetailScreen({
           <div className="flex flex-wrap items-center gap-2">
             <MagnificButton assignmentId={assignment.id} baseUrl={magnificBaseUrl} url={assignment.magnificUrl} />
             {canManageStatus ? (
-              <>
-                <EditAssignmentDialog
-                  accoId={assignment.accoId}
-                  assignmentId={assignment.id}
-                  briefing={assignment.briefing}
-                  currentEditorId={currentEditorId}
-                  currentRentalExpertId={currentRentalExpertId}
-                  editors={editors}
-                  priority={assignment.priority}
-                  rentalExperts={rentalExperts}
-                  requestDate={assignment.requestDate}
-                />
-                {assignment.status !== "ai_rejected" ? (
-                  <CancelAssignmentDialog assignmentId={assignment.id} />
-                ) : null}
-              </>
+              <EditAssignmentDialog
+                accoId={assignment.accoId}
+                assignmentId={assignment.id}
+                briefing={assignment.briefing}
+                currentEditorId={currentEditorId}
+                currentRentalExpertId={currentRentalExpertId}
+                editors={editors}
+                priority={assignment.priority}
+                rentalExperts={rentalExperts}
+                requestDate={assignment.requestDate}
+              />
             ) : null}
-            {canDelete ? <DeleteAssignmentDialog accoId={assignment.accoId} assignmentId={assignment.id} /> : null}
+            {(canManageStatus && assignment.status !== "ai_rejected") || canDelete ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button aria-label="Meer acties" size="icon" variant="ghost">
+                    <MoreVertical aria-hidden="true" className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canManageStatus && assignment.status !== "ai_rejected" ? (
+                    <CancelAssignmentDialog assignmentId={assignment.id} />
+                  ) : null}
+                  {canDelete ? (
+                    <DeleteAssignmentDialog accoId={assignment.accoId} assignmentId={assignment.id} />
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
         </div>
       </div>
@@ -382,12 +398,12 @@ function MagnificButton({
         </a>
       </Button>
       <button
-        aria-label="Magnific-link bewerken"
-        className="rounded-sm p-2 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        className="flex items-center gap-1 rounded-sm px-2 py-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         onClick={() => setEditing(true)}
         type="button"
       >
-        <Pencil className="size-4" />
+        <Pencil aria-hidden="true" className="size-3.5" />
+        Link wijzigen
       </button>
     </div>
   );
