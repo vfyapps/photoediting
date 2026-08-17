@@ -40,6 +40,33 @@ export async function markGuidelineRead(guidelineId: string): Promise<AcademyAct
   return { ok: true };
 }
 
+// De "Gelezen"-knop is een toggle, geen eenrichtings-checkbox: een editor
+// mag een module weer op ongelezen zetten (BUILDPLAN-V4 §WP6.4).
+export async function unmarkGuidelineRead(guidelineId: string): Promise<AcademyActionResult> {
+  const parsed = markGuidelineReadSchema.safeParse({ guidelineId });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Ongeldige aanvraag" };
+  }
+
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const userId = claims?.claims.sub;
+  if (!userId) return { ok: false, message: "Je bent niet ingelogd." };
+
+  const { error } = await supabase
+    .from("academy_reads")
+    .delete()
+    .eq("user_id", userId)
+    .eq("guideline_id", parsed.data.guidelineId);
+
+  if (error) {
+    return { ok: false, message: "Kon niet als ongelezen markeren. Probeer opnieuw." };
+  }
+
+  revalidatePath("/academy");
+  return { ok: true };
+}
+
 /**
  * Maakt of wijzigt een module. Alleen coordinator/admin — RLS
  * (write_guidelines) is de echte grens, deze action geeft alleen een

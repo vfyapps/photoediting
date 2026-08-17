@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
-import { markGuidelineRead } from "@/app/(app)/academy/actions";
+import { markGuidelineRead, unmarkGuidelineRead } from "@/app/(app)/academy/actions";
 import { PromptCard, type PromptRow } from "@/components/academy/prompt-card";
 import { Badge, Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,12 @@ export function ModuleScreen({
   const [isPending, startTransition] = useTransition();
   const [linkCopied, setLinkCopied] = useState(false);
 
-  function markRead() {
+  function toggleRead() {
     startTransition(async () => {
-      const result = await markGuidelineRead(guideline.id);
-      if (result.ok) setRead(true);
+      const result = read
+        ? await unmarkGuidelineRead(guideline.id)
+        : await markGuidelineRead(guideline.id);
+      if (result.ok) setRead(!read);
       else toast.error(result.message);
     });
   }
@@ -131,7 +133,13 @@ export function ModuleScreen({
       ) : null}
 
       <div className="border-t border-border pt-4">
-        <Button disabled={read || isPending} onClick={markRead} type="button" variant={read ? "secondary" : "primary"}>
+        <Button
+          disabled={isPending}
+          onClick={toggleRead}
+          title={read ? "Klik om als ongelezen te markeren" : undefined}
+          type="button"
+          variant={read ? "secondary" : "primary"}
+        >
           <Check aria-hidden="true" className="size-4" />
           {read ? "Gelezen" : "Markeer als gelezen"}
         </Button>

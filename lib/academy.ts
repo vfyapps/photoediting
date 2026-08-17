@@ -29,7 +29,27 @@ export type GuidelineSummary = {
   origin: "manual" | "qc_suggested";
   sortOrder: number;
   updatedAt: string;
+  bodyPreview: string;
 };
+
+// Eerste regel body zonder markdown-opmaak, voor de rij-preview op de
+// academy-index (BUILDPLAN-V4 §WP6.2). Geen volwaardige markdown-strip nodig
+// voor een korte preview — kopregels, nadruk en links zijn de opmaak die in
+// de eerste regel van een module daadwerkelijk voorkomt.
+function stripMarkdown(value: string): string {
+  return value
+    .replace(/^#+\s*/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+    .trim();
+}
+
+function bodyPreview(bodyMd: string): string {
+  const firstLine = bodyMd.split("\n").find((line) => line.trim().length > 0) ?? "";
+  const text = stripMarkdown(firstLine);
+  return text.length > 140 ? `${text.slice(0, 140).trimEnd()}…` : text;
+}
 
 export function toGuidelineSummary(row: Tables<"guidelines">): GuidelineSummary {
   return {
@@ -42,6 +62,7 @@ export function toGuidelineSummary(row: Tables<"guidelines">): GuidelineSummary 
     origin: row.origin,
     sortOrder: row.sort_order,
     updatedAt: row.updated_at,
+    bodyPreview: bodyPreview(row.body_md),
   };
 }
 

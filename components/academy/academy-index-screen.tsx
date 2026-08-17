@@ -63,6 +63,9 @@ export function AcademyIndexScreen({
   }
 
   const modules = orderedModules(guidelines, activeTrack);
+  const publishedModules = modules.filter((guideline) => guideline.isPublished);
+  const conceptModules = modules.filter((guideline) => !guideline.isPublished);
+  const readInTrack = publishedModules.filter((guideline) => readIds.has(guideline.id)).length;
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,7 +106,14 @@ export function AcademyIndexScreen({
           </button>
         ))}
       </div>
-      <p className="-mt-4 text-sm text-muted-foreground">{trackDescriptions[activeTrack]}</p>
+      <div className="-mt-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">{trackDescriptions[activeTrack]}</p>
+        {isEditor && publishedModules.length > 0 ? (
+          <span className="font-mono text-xs text-muted-foreground">
+            {readInTrack} van {publishedModules.length} gelezen
+          </span>
+        ) : null}
+      </div>
 
       {modules.length === 0 ? (
         <EmptyState
@@ -112,27 +122,70 @@ export function AcademyIndexScreen({
           title="Nog geen modules in deze track"
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {modules.map((guideline) => (
-            <li key={guideline.id}>
-              <Link
-                className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-4 py-3 transition-[transform,box-shadow] duration-fast ease-standard hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-                href={`/academy/${guideline.slug}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{guideline.title}</span>
-                  {readIds.has(guideline.id) ? <Chip status="success">Gelezen</Chip> : null}
-                  {!guideline.isPublished ? <Badge status="warning">Concept</Badge> : null}
-                  {guideline.origin === "qc_suggested" ? (
-                    <Badge status="neutral">Auto, uit QC</Badge>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="flex flex-col gap-2">
+            {publishedModules.map((guideline, index) => (
+              <ModuleRow
+                guideline={guideline}
+                key={guideline.id}
+                number={activeTrack === "onboarding" ? index + 1 : null}
+                read={readIds.has(guideline.id)}
+              />
+            ))}
+          </ul>
+
+          {conceptModules.length > 0 && canEdit ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Concepten</p>
+              <ul className="flex flex-col gap-2">
+                {conceptModules.map((guideline) => (
+                  <ModuleRow guideline={guideline} key={guideline.id} number={null} read={false} />
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
+  );
+}
+
+function ModuleRow({
+  guideline,
+  number,
+  read,
+}: {
+  guideline: GuidelineSummary;
+  number: number | null;
+  read: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        className={cn(
+          "flex items-center gap-3 rounded-md border border-border px-4 py-3 transition-[transform,box-shadow] duration-fast ease-standard hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
+          guideline.isPublished ? "bg-card" : "bg-muted/30",
+        )}
+        href={`/academy/${guideline.slug}`}
+      >
+        {number !== null ? (
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-[11px] font-semibold text-muted-foreground">
+            {number}
+          </span>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{guideline.title}</span>
+            {read ? <Chip status="success">Gelezen</Chip> : null}
+            {!guideline.isPublished ? <Badge status="warning">Concept</Badge> : null}
+            {guideline.origin === "qc_suggested" ? <Badge status="neutral">Auto, uit QC</Badge> : null}
+          </div>
+          {guideline.bodyPreview ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{guideline.bodyPreview}</p>
+          ) : null}
+        </div>
+      </Link>
+    </li>
   );
 }
 
