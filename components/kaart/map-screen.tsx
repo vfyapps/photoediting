@@ -108,7 +108,7 @@ export function MapScreen({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-border">
+        <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-border bg-secondary">
           <MapContainer
             bounds={bounds ?? undefined}
             boundsOptions={{ padding: [40, 40] }}
