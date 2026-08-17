@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -344,21 +344,25 @@ function AliasTable({ aliases, experts }: { aliases: Alias[]; experts: Expert[] 
 
   return (
     <div className="flex flex-col gap-2">
-      <ul className="flex flex-col divide-y divide-border rounded-md border border-border">
+      <ul className="grid gap-x-4 rounded-md border border-border sm:grid-cols-2">
         {aliases.map((a) => (
-          <li className="flex items-center gap-2 px-3 py-1.5 text-xs" key={a.alias}>
+          <li
+            className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
+            key={a.alias}
+          >
             <CheckCircle2 className="size-3.5 shrink-0 text-success" />
-            <span className="w-32 shrink-0 font-mono">{a.alias}</span>
-            <span className="text-muted-foreground">→ {a.rentalExpertName}</span>
-            <Button
-              className="ml-auto"
+            <span className="w-24 shrink-0 truncate font-mono">{a.alias}</span>
+            <span className="min-w-0 flex-1 truncate text-muted-foreground">→ {a.rentalExpertName}</span>
+            <button
+              aria-label={`Ontkoppel alias ${a.alias}`}
+              className="shrink-0 rounded-sm p-1 text-muted-foreground hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50"
               disabled={isPending}
               onClick={() => remove(a.alias)}
-              size="sm"
-              variant="ghost"
+              title="Ontkoppelen"
+              type="button"
             >
-              Ontkoppelen
-            </Button>
+              <X className="size-3.5" />
+            </button>
           </li>
         ))}
       </ul>

@@ -108,7 +108,7 @@ export function MapScreen({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-border bg-secondary">
+        <div className="relative h-[70vh] min-h-[480px] overflow-hidden rounded-md border border-border bg-secondary">
           <MapContainer
             bounds={bounds ?? undefined}
             boundsOptions={{ padding: [40, 40] }}
@@ -125,7 +125,7 @@ export function MapScreen({
               ? nearestLines.map(({ cluster }) => (
                   <Polyline
                     key={cluster.key}
-                    pathOptions={{ color: "#6366f1", weight: 1.5, opacity: 0.6 }}
+                    pathOptions={{ color: "var(--chart-7)", weight: 1.5, opacity: 0.6 }}
                     positions={[
                       [selectedPhotographer.lat, selectedPhotographer.lon],
                       [cluster.lat, cluster.lon],
@@ -145,7 +145,7 @@ export function MapScreen({
                   pathOptions={{
                     color: "var(--card, #fff)",
                     weight: isSelected ? 2 : 1,
-                    fillColor: "#f97316",
+                    fillColor: "var(--chart-2)",
                     fillOpacity: isSelected ? 1 : 0.8,
                   }}
                   radius={radius}
@@ -167,7 +167,7 @@ export function MapScreen({
                   pathOptions={{
                     color: "var(--card, #fff)",
                     weight: isSelected ? 2 : 1,
-                    fillColor: "#6366f1",
+                    fillColor: "var(--chart-7)",
                     fillOpacity: isSelected ? 1 : 0.85,
                   }}
                   radius={7}
@@ -177,6 +177,15 @@ export function MapScreen({
               );
             })}
           </MapContainer>
+
+          <div className="pointer-events-none absolute bottom-2 left-2 z-[1000] flex w-fit gap-3 rounded-md border border-border bg-card/90 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
+            <span className="flex items-center gap-1">
+              <Camera className="size-3 text-chart-2" /> Locatie
+            </span>
+            <span className="flex items-center gap-1">
+              <Diamond className="size-3 text-chart-7" /> Fotograaf
+            </span>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -191,10 +200,10 @@ export function MapScreen({
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Camera className="size-3.5 text-chart-1" /> {filteredClusters.length} locatie(s), {totalShoots} shoots
+              <Camera className="size-3.5 text-chart-2" /> {filteredClusters.length} locatie(s), {totalShoots} shoots
             </span>
             <span className="flex items-center gap-1">
-              <Diamond className="size-3.5 text-chart-2" /> {photographers.length} fotografen
+              <Diamond className="size-3.5 text-chart-7" /> {photographers.length} fotografen
             </span>
           </div>
 

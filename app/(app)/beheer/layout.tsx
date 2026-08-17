@@ -16,7 +16,7 @@ export default async function BeheerLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <BeheerTabs />
       {children}
     </div>

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function Loading() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PageHeaderSkeleton />
       <div className="flex gap-1 border-b border-border">
         {Array.from({ length: 6 }).map((_, i) => (
