@@ -30,6 +30,7 @@ export type GuidelineSummary = {
   sortOrder: number;
   updatedAt: string;
   bodyPreview: string;
+  readingMinutes: number;
 };
 
 // Eerste regel body zonder markdown-opmaak, voor de rij-preview op de
@@ -51,6 +52,13 @@ function bodyPreview(bodyMd: string): string {
   return text.length > 140 ? `${text.slice(0, 140).trimEnd()}…` : text;
 }
 
+// V5 "Studio" leestijd (BUILDPLAN-V5 §WP7.2): berekend uit de lengte van
+// body_md, niet opgeslagen. 200 woorden/minuut, ~5.5 tekens/woord (NL-
+// gemiddelde), nooit onder 1 minuut.
+function readingMinutes(bodyMd: string): number {
+  return Math.max(1, Math.round(bodyMd.length / 5.5 / 200));
+}
+
 export function toGuidelineSummary(row: Tables<"guidelines">): GuidelineSummary {
   return {
     id: row.id,
@@ -63,6 +71,7 @@ export function toGuidelineSummary(row: Tables<"guidelines">): GuidelineSummary 
     sortOrder: row.sort_order,
     updatedAt: row.updated_at,
     bodyPreview: bodyPreview(row.body_md),
+    readingMinutes: readingMinutes(row.body_md),
   };
 }
 
