@@ -21,6 +21,8 @@ export function FindingForm({
   onSubmit,
   onCancel,
   isPending,
+  selectedPhoto,
+  onSelectedPhotoChange,
 }: {
   editItems: EditItem[];
   issueTypes: IssueType[];
@@ -29,8 +31,14 @@ export function FindingForm({
   onSubmit: () => void;
   onCancel: () => void;
   isPending: boolean;
+  /** V5 "Studio": klikken op een PhotoPips-chip in de review-canvas
+   * (BUILDPLAN-V5 §WP5.1) stuurt deze selectie aan — het dropdownveld
+   * hieronder blijft bestaan als alternatieve/toetsenbord-bediening. */
+  selectedPhoto: number | null;
+  onSelectedPhotoChange: (photoNumber: number | null) => void;
 }) {
-  const [photoNumber, setPhotoNumber] = useState<string>("");
+  const photoNumber = selectedPhoto === null ? "" : String(selectedPhoto);
+  const setPhotoNumber = (value: string) => onSelectedPhotoChange(value ? Number.parseInt(value, 10) : null);
   const [issueCode, setIssueCode] = useState(issueTypes[0]?.code ?? "");
   const [comment, setComment] = useState("");
   const photoNumbers = [...new Set(editItems.map((item) => item.photoNumber))].sort((a, b) => a - b);

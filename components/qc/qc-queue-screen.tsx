@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { submitQcReview, type QcFindingInput } from "@/app/(app)/qc/actions";
@@ -11,7 +11,9 @@ import { FindingForm } from "@/components/qc/finding-form";
 import { Badge, Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { GoalTile } from "@/components/ui/goal-tile";
 import { PageHeader } from "@/components/ui/page-header";
+import { PhotoPips } from "@/components/ui/photo-pips";
 import type { AssignmentDetail, EditItem } from "@/lib/assignments";
 import { priorityLabels } from "@/lib/assignments";
 import { cn } from "@/lib/utils";
@@ -65,7 +67,6 @@ export function QcQueueScreen({
       <div className="flex flex-col gap-6">
         <PageHeader
           description="De QC-wachtrij, met bevindingen per foto en sneltoetsen om snel door te lopen."
-          eyebrow="Controle"
           title="Kwaliteitscontrole"
         />
         <EmptyState
@@ -80,9 +81,33 @@ export function QcQueueScreen({
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
+        actions={
+          <div className="flex items-center gap-1">
+            <Button
+              aria-label="Vorige opdracht"
+              disabled={index === 0}
+              onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+              size="icon"
+              variant="secondary"
+            >
+              <ChevronLeft aria-hidden="true" className="size-4" />
+            </Button>
+            <span className="min-w-14 text-center font-mono text-xs text-muted-foreground">
+              {index + 1}/{queue.length}
+            </span>
+            <Button
+              aria-label="Volgende opdracht"
+              disabled={index === queue.length - 1}
+              onClick={() => setIndex((i) => Math.min(i + 1, queue.length - 1))}
+              size="icon"
+              variant="secondary"
+            >
+              <ChevronRight aria-hidden="true" className="size-4" />
+            </Button>
+          </div>
+        }
         description="Oudste eerst. j/k of pijltjes om te wisselen, a om goed te keuren, d voor het afkeurformulier."
-        eyebrow="Kwaliteitscontrole"
-        title="QC"
+        title="Kwaliteitscontrole"
       />
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
@@ -150,6 +175,7 @@ function ReviewPanel({
 }) {
   const [findings, setFindings] = useState<QcFindingInput[]>([]);
   const [showDenyForm, setShowDenyForm] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function approve() {
@@ -209,7 +235,15 @@ function ReviewPanel({
         </div>
       </div>
 
-      <PhotoReference editItems={editItems} goalLabels={goalLabels} />
+      <ReviewCanvas
+        editItems={editItems}
+        goalLabels={goalLabels}
+        onSelectPhoto={(photoNumber) => {
+          setSelectedPhoto(photoNumber);
+          setShowDenyForm(true);
+        }}
+        selectedPhoto={selectedPhoto}
+      />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button disabled={isPending} onClick={approve} type="button">
@@ -233,7 +267,9 @@ function ReviewPanel({
           isPending={isPending}
           onCancel={() => setShowDenyForm(false)}
           onChange={setFindings}
+          onSelectedPhotoChange={setSelectedPhoto}
           onSubmit={deny}
+          selectedPhoto={selectedPhoto}
         />
       ) : null}
 
@@ -249,12 +285,24 @@ function ReviewPanel({
   );
 }
 
-function PhotoReference({
+/**
+ * V5 "Studio" review-canvas (BUILDPLAN-V5 §WP5.1, DESIGN-V5.md §2): grote
+ * GoalTile-tegels met de fotonummers als klikbare genummerde chips i.p.v.
+ * kale tekst. Klik op een chip selecteert die foto voor het afkeurformulier
+ * en opent het formulier meteen — dit is het signature-moment van dit
+ * scherm, de vervanging van de fotoviewer uit de mockup (er zijn hier geen
+ * foto's, zie DESIGN-V5.md §2).
+ */
+function ReviewCanvas({
   editItems,
   goalLabels,
+  selectedPhoto,
+  onSelectPhoto,
 }: {
   editItems: EditItem[];
   goalLabels: Map<string, string>;
+  selectedPhoto: number | null;
+  onSelectPhoto: (photoNumber: number) => void;
 }) {
   if (editItems.length === 0) {
     return <p className="text-xs text-muted-foreground">Geen foto&apos;s geregistreerd op deze opdracht.</p>;
@@ -266,15 +314,25 @@ function PhotoReference({
   });
 
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-      {[...byGoal.entries()].map(([goalCode, items]) => (
-        <div key={goalCode}>
-          <span className="font-semibold">{goalLabels.get(goalCode) ?? goalCode}:</span>{" "}
-          <span className="font-mono text-muted-foreground">
-            {items.map((item) => `#${item.photoNumber}`).join(", ")}
-          </span>
-        </div>
-      ))}
+    <div className="grid gap-3 sm:grid-cols-2">
+      {[...byGoal.entries()].map(([goalCode, items]) => {
+        const photoNumbers = [...new Set(items.map((item) => item.photoNumber))].sort((a, b) => a - b);
+        return (
+          <GoalTile
+            goals={[{ code: goalCode, label: goalLabels.get(goalCode) ?? goalCode }]}
+            key={goalCode}
+            variant="tile"
+          >
+            <PhotoPips
+              done={new Set()}
+              onSelect={onSelectPhoto}
+              photoNumbers={photoNumbers}
+              selected={selectedPhoto}
+              variant="chips"
+            />
+          </GoalTile>
+        );
+      })}
     </div>
   );
 }
