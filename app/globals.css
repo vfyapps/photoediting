@@ -48,6 +48,15 @@
   --color-v5-chrome-muted: #8b979f;
   --v5-shadow-card: 0 1px 2px rgb(16 24 32 / 0.04), 0 4px 12px rgb(16 24 32 / 0.06);
   --v5-shadow-card-dark: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.35);
+
+  /* Dashboard-hero-gradiënt (BUILDPLAN-V5 §WP6.1): bewust NIET de
+     theme-afhankelijke --v5-green, want die is in .dark een heldere tint
+     waar wit al op faalt (2.42:1, zie de knop-hover-toelichting hierboven).
+     Een gekleurd hero-vlak hoeft niet met het thema mee te wisselen — zelfde
+     redenering als chrome. Eigen paar, gelijk aan de lichte v5-green/
+     v5-green-deep die al ≥4.98:1 met wit halen, in beide thema's. */
+  --color-v5-hero-from: #14804a;
+  --color-v5-hero-to: #0b5230;
 }
 
 /*

@@ -6,6 +6,7 @@ import { ExportLink } from "@/components/dashboard/export-link";
 import { GoalUsageChart } from "@/components/dashboard/goal-usage-chart";
 import { HeroStats } from "@/components/dashboard/hero-stats";
 import { MonthlyVolumeChart } from "@/components/dashboard/monthly-volume-chart";
+import { RecentActivity, type ActivityRow } from "@/components/dashboard/recent-activity";
 import { TopIssuesChart } from "@/components/dashboard/top-issues-chart";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUser } from "@/lib/session";
@@ -50,6 +51,28 @@ export default async function DashboardPage() {
       .select("key, value")
       .in("key", ["avoided_shoot_cost_eur", "monthly_editing_cost_eur"]),
   ]);
+
+  // V5 "Studio" (BUILDPLAN-V5 §WP6.4): laatste 8 statuswijzigingen team-breed
+  // — zelfde bron als de tijdlijn op het opdrachtdetail (V5-WP4).
+  const { data: activityRows } = await supabase
+    .from("status_events")
+    .select("id, assignment_id, to_status, created_at, assignment:assignments(acco_id), actor:app_users(full_name)")
+    .order("created_at", { ascending: false })
+    .limit(8);
+  const activity: ActivityRow[] = (activityRows ?? []).flatMap((row) => {
+    const accoId = (row.assignment as { acco_id: string } | null)?.acco_id;
+    if (!accoId) return [];
+    return [
+      {
+        id: row.id,
+        assignmentId: row.assignment_id,
+        accoId,
+        toStatus: row.to_status,
+        actorName: (row.actor as { full_name: string } | null)?.full_name ?? null,
+        createdAt: row.created_at,
+      },
+    ];
+  });
 
   const statusRows = statusResult.data ?? [];
   const approvedRow = statusRows.find((row) => row.status === "approved");
@@ -125,13 +148,20 @@ export default async function DashboardPage() {
         </section>
       </div>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">Performance per editor</h2>
-          <ExportLink label="Editors" view="editors" />
-        </div>
-        <EditorPerformanceTable rows={editorResult.data ?? []} />
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-semibold">Performance per editor</h2>
+            <ExportLink label="Editors" view="editors" />
+          </div>
+          <EditorPerformanceTable rows={editorResult.data ?? []} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="text-base font-semibold">Recente activiteit</h2>
+          <RecentActivity rows={activity} />
+        </section>
+      </div>
     </div>
   );
 }

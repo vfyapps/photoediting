@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import { EmptyState } from "@/components/ui/empty-state";
+import { avatarColorVar } from "@/lib/avatar-color";
 
 type EditorRow = {
   editor: string | null;
@@ -47,7 +48,17 @@ export function EditorPerformanceTable({ rows }: { rows: EditorRow[] }) {
         <tbody>
           {data.map((row) => (
             <tr className="border-b border-border last:border-b-0" key={row.editor}>
-              <td className="px-3 py-2 font-medium">{row.editor}</td>
+              <td className="px-3 py-2 font-medium">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="grid size-6 shrink-0 place-items-center rounded-full border-2 bg-muted font-mono text-[9px] font-semibold text-muted-foreground"
+                    style={{ borderColor: avatarColorVar(row.editor ?? "") }}
+                  >
+                    {initials(row.editor ?? "")}
+                  </span>
+                  {row.editor}
+                </div>
+              </td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{row.toegewezen ?? 0}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{row.approved ?? 0}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{row.denied ?? 0}</td>
@@ -64,4 +75,14 @@ export function EditorPerformanceTable({ rows }: { rows: EditorRow[] }) {
       </table>
     </div>
   );
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 }
