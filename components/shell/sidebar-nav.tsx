@@ -19,10 +19,12 @@ export function SidebarNav({ items }: { items: NavItem[] }) {
             aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-[transform,box-shadow] duration-fast ease-standard",
+              // Focus-ring op donkere chrome: outline-offset houdt hem los
+              // van de bijna-zwarte achtergrond, anders valt hij weg.
               "focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2",
               active
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                ? "bg-v5-chrome-active text-white"
+                : "text-v5-chrome-muted hover:bg-v5-chrome-raised hover:text-v5-chrome-ink",
             )}
             href={item.href}
             key={item.href}

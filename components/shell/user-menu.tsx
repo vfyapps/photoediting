@@ -32,19 +32,46 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function UserMenu({ user }: { user: CurrentUser }) {
+export function UserMenu({
+  user,
+  variant = "icon",
+}: {
+  user: CurrentUser;
+  /**
+   * "icon" — het oude header-gebruik: alleen een avatarcirkel.
+   * "chrome" — V5 "Studio" zijbalk-voetblok (BUILDPLAN-V5 §WP1.1): avatar +
+   * naam + rol, in chrome-kleuren, vult de breedte onder md.
+   */
+  variant?: "icon" | "chrome";
+}) {
   const [isSigningOut, startSignOut] = useTransition();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          aria-label={`Gebruikersmenu voor ${user.fullName}`}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold text-muted-foreground transition-[transform,box-shadow] duration-fast ease-standard hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
-          type="button"
-        >
-          {initials(user.fullName)}
-        </button>
+        {variant === "chrome" ? (
+          <button
+            aria-label={`Gebruikersmenu voor ${user.fullName}`}
+            className="flex w-full items-center gap-2.5 rounded-md p-2 text-left transition-[transform,box-shadow] duration-fast ease-standard hover:bg-v5-chrome-raised focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+            type="button"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-v5-chrome-raised font-mono text-xs font-semibold text-v5-chrome-ink">
+              {initials(user.fullName)}
+            </span>
+            <span className="hidden min-w-0 flex-1 md:block">
+              <span className="block truncate text-sm font-medium text-v5-chrome-ink">{user.fullName}</span>
+              <span className="block truncate text-xs text-v5-chrome-muted">{roleLabels[user.role]}</span>
+            </span>
+          </button>
+        ) : (
+          <button
+            aria-label={`Gebruikersmenu voor ${user.fullName}`}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-xs font-semibold text-muted-foreground transition-[transform,box-shadow] duration-fast ease-standard hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+            type="button"
+          >
+            {initials(user.fullName)}
+          </button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>

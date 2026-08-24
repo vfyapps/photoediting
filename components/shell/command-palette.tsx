@@ -69,15 +69,18 @@ export function CommandPalette({ items }: { items: NavItem[] }) {
 
   return (
     <>
+      {/* V5 "Studio": de trigger zit nu in de donkere zijbalk (BUILDPLAN-V5
+          §WP1.2), niet meer in een lichte header — eigen kleurstelling.
+          Onder md alleen het icoon, zelfde inklap-patroon als SidebarNav. */}
       <button
         aria-label="Open command palette"
-        className="flex h-9 w-full max-w-64 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm text-muted-foreground transition-[transform,box-shadow] duration-fast ease-standard hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+        className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-v5-chrome-raised px-3 text-sm text-v5-chrome-muted transition-[transform,box-shadow] duration-fast ease-standard hover:text-v5-chrome-ink focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 md:justify-start"
         onClick={() => handleOpenChange(true)}
         type="button"
       >
-        <Search aria-hidden="true" className="size-4" />
-        <span className="flex-1 truncate text-left">Zoeken of navigeren…</span>
-        <kbd className="hidden rounded-sm border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
+        <Search aria-hidden="true" className="size-4 shrink-0" />
+        <span className="hidden flex-1 truncate text-left md:inline">Zoeken of navigeren…</span>
+        <kbd className="hidden rounded-sm border border-white/10 bg-v5-chrome px-1.5 py-0.5 font-mono text-[10px] text-v5-chrome-muted lg:inline">
           Ctrl K
         </kbd>
       </button>
