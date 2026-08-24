@@ -15,8 +15,13 @@ toegankelijkheidsregels (focus-ring, aria-labels, `Intl.*`, URL-state).
 ## 1. De drie verschuivingen
 
 **Donkere chrome, licht canvas.** De zijbalk wordt bijna-zwart met lichte tekst,
-een logo-merk bovenaan en een gebruikersblok onderaan. Het werkvlak blijft licht.
-Dit is *chrome*, geen dark mode — de app blijft light-only.
+een logo-merk bovenaan en een gebruikersblok onderaan. Dit is *chrome*, geen
+dark mode: de zijbalk blijft in beide standen zoals hij is. Correctie op een
+eerdere aanname: de app heeft wél een werkende licht/donker/systeem-schakelaar
+(command palette → Thema, `lib/theme.ts`, `.dark`-klasse) — die blijft
+functioneren, dat is de VfY-skill's bindende regel ("elk scherm in beide
+thema's"). Het werkvlak (het canvas naast de chrome) volgt dus gewoon de
+bestaande `--background`/`--card`-tokens in beide standen.
 
 **Groen in plaats van teal.** Eén accent, dieper en warmer dan de huidige teal.
 Draagt de primaire actie, het actieve nav-item en het besparingsverhaal.
@@ -27,25 +32,41 @@ padding. Kaarten mogen als objecten lezen in plaats van als tabelrijen.
 ### Token-delta (alleen wat verandert t.o.v. `app/globals.css`)
 
 ```
---v5-chrome:        #101820   /* zijbalk */
+/* Chrome — theme-onafhankelijk, de zijbalk is in licht én donker hetzelfde */
+--v5-chrome:        #101820
 --v5-chrome-raised: #1a242c   /* hover in de zijbalk */
 --v5-chrome-active: #14432c   /* actief nav-item, groen getint */
 --v5-chrome-ink:    #e8edf0   /* tekst op chrome */
 --v5-chrome-muted:  #8b979f   /* secundaire tekst op chrome */
 
+/* Groen accent — licht (:root/.sand) */
 --v5-green-600: #14804a       /* primair: knoppen, actieve staat */
 --v5-green-700: #0f6b3d       /* hover */
 --v5-green-800: #0b5230       /* hero-gradient eindpunt */
 --v5-green-100: #e7f4ec       /* tint */
 
+/* Groen accent — donker (.dark), lichter/verzadigder voor voldoende
+   contrast op een donkere kaart-achtergrond — zelfde principe als
+   --vfy-teal-hover t.o.v. --vfy-teal-ink nu al toepast */
+--v5-green-600-dark: #2fbd76
+--v5-green-700-dark: #4bcf8c  /* hover, lichter, niet donkerder */
+--v5-green-800-dark: #123a26  /* hero-gradient eindpunt, donker canvas */
+--v5-green-100-dark: rgba(47, 189, 118, 0.16)
+--v5-green-foreground-dark: #0e2420  /* knoptekst in .dark — wit op
+   --v5-green-600-dark haalt maar 2.42:1, donkere ink 6.70:1. Zelfde patroon
+   als de bestaande --primary-foreground in .dark voor --vfy-teal-hover. */
+
 --radius-md: 8px              /* was 6 */
 --radius-lg: 14px             /* was 10 */
 --shadow-card: 0 1px 2px rgb(16 24 32 / .04), 0 4px 12px rgb(16 24 32 / .06)
+--shadow-card-dark: 0 1px 2px rgb(0 0 0 / .3), 0 4px 12px rgb(0 0 0 / .35)
 ```
 
-De acht `--chart-*`-tinten blijven ongewijzigd — die zijn gevalideerd en dragen
-in V5 extra gewicht (zie §2). Contrast van elke nieuwe groen/chrome-combinatie
-wordt in WP0 nagerekend, niet op het oog aangenomen.
+De acht `--chart-*`-tinten blijven ongewijzigd — die zijn gevalideerd (licht én
+donker) en dragen in V5 extra gewicht (zie §2). Contrast van elke nieuwe
+groen/chrome-combinatie wordt in WP0 nagerekend in beide standen, niet op het
+oog aangenomen — inclusief `--v5-chrome-ink`/`--v5-chrome-muted` op
+`--v5-chrome`, die zijn theme-onafhankelijk en dus maar één keer te checken.
 
 ---
 

@@ -14,7 +14,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground hover:bg-vfy-teal rounded-md",
+        // V5 "Studio": hover is a theme-dependent token (--v5-green-hover),
+        // not a fixed hex like the VfY-2.0 --vfy-teal pattern this replaced —
+        // safe because background-color isn't in the transition list above
+        // (no stuck-value risk, that bug only bites on animated transitions).
+        primary: "bg-primary text-primary-foreground hover:bg-v5-green-hover rounded-md",
         secondary: "bg-secondary text-secondary-foreground border border-border hover:bg-muted rounded-md",
         ghost: "bg-transparent text-foreground hover:bg-secondary rounded-md",
         destructive: "bg-destructive text-destructive-foreground hover:bg-vfy-coral-hover rounded-md",

@@ -25,16 +25,23 @@ los uitvoerbaar, op volgorde van hoe vaak ze dagelijks gebruikt worden.
 1. Voeg de V5-tokens uit DESIGN-V5.md §1 toe aan `app/globals.css`, in dezelfde
    `@theme inline`-vorm als de bestaande (let op de bekende valkuil: een plain
    `@theme` genereert stilzwijgend geen CSS voor theme-afhankelijke waarden).
-2. **Reken contrast na, neem het niet aan.** Wit op `--v5-green-600` moet ≥ 4.5:1
-   halen voor knoptekst; `--v5-chrome-muted` op `--v5-chrome` idem voor
-   secundaire zijbalktekst. Corrigeer de tint als iets zakt, en noteer de
-   gemeten waarde in een commentaarregel bij het token.
-3. `--radius-md`/`--radius-lg` ophogen en `--shadow-card` toevoegen.
-4. Zet `primary` op de nieuwe groen zodat bestaande `Button variant="primary"`
-   meteen meebeweegt — géén losse groene knopvariant introduceren.
+   De chrometokens zijn theme-onafhankelijk (buiten `:root`/`.dark` om, zoals
+   `--vfy-teal` nu al staat); de groentokens krijgen een `:root`- en een
+   `.dark`-variant, zoals DESIGN-V5.md §1 specificeert.
+2. **Reken contrast na, neem het niet aan.** Wit op `--v5-green-600` (licht) én
+   op `--v5-green-600-dark` (donker) moet ≥ 4.5:1 halen voor knoptekst;
+   `--v5-chrome-muted` op `--v5-chrome` idem voor secundaire zijbalktekst — dat
+   laatste maar één keer, chrome is theme-onafhankelijk. Corrigeer de tint als
+   iets zakt, en noteer de gemeten waarde in een commentaarregel bij het token.
+3. `--radius-md`/`--radius-lg` ophogen en `--shadow-card`/`--shadow-card-dark`
+   toevoegen.
+4. Zet `primary` op de nieuwe groen (licht) en op de dark-variant in `.dark`,
+   zodat bestaande `Button variant="primary"` meteen meebeweegt in beide
+   standen — géén losse groene knopvariant introduceren.
 
 **Verificatie:** een bestaand scherm (bord) rendert onveranderd van structuur,
-alleen in de nieuwe kleur; geen enkele hex buiten `globals.css`.
+alleen in de nieuwe kleur, in zowel licht als donker (Thema-schakelaar in de
+command palette); geen enkele hex buiten `globals.css`.
 
 ---
 

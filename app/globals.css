@@ -16,10 +16,12 @@
   --font-body: var(--font-noto-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
-  /* radius — a scale with a reason per size, not one value everywhere */
+  /* radius — a scale with a reason per size, not one value everywhere.
+     md/lg raised for V5 "Studio" (DESIGN-V5.md §1: "meer lucht, meer diepte")
+     — every rounded-md/rounded-lg in the app picks this up automatically. */
   --radius-sm: 4px;   /* inputs, badges */
-  --radius-md: 6px;   /* cards, buttons — default */
-  --radius-lg: 10px;  /* panels, dialogs, hero */
+  --radius-md: 8px;   /* cards, buttons — default (was 6) */
+  --radius-lg: 14px;  /* panels, dialogs, hero (was 10) */
   --radius-full: 9999px; /* pills, icon-only buttons */
 
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -31,6 +33,21 @@
   --color-success: #3f8f5f;
   --color-warning: #a9711c;
   --color-info: #3b6fa6;
+
+  /* V5 "Studio" — chrome is theme-onafhankelijk (net als --vfy-teal), de
+     zijbalk blijft in licht en donker hetzelfde bijna-zwarte vlak. Zie
+     DESIGN-V5.md §1. Contrast nagerekend: chrome-ink/chrome 15.17:1,
+     chrome-muted/chrome 5.99:1, chrome-muted/chrome-raised 5.27:1,
+     wit/chrome-active 9.53:1 — alle ruim boven 4.5:1. Direct als --color-*
+     genoemd (geen :root/.dark-indirectie nodig, dit varieert niet per thema),
+     zodat Tailwind er bg-v5-chrome/text-v5-chrome-ink/etc. van genereert. */
+  --color-v5-chrome: #101820;
+  --color-v5-chrome-raised: #1a242c;
+  --color-v5-chrome-active: #14432c;
+  --color-v5-chrome-ink: #e8edf0;
+  --color-v5-chrome-muted: #8b979f;
+  --v5-shadow-card: 0 1px 2px rgb(16 24 32 / 0.04), 0 4px 12px rgb(16 24 32 / 0.06);
+  --v5-shadow-card-dark: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.35);
 }
 
 /*
@@ -97,6 +114,18 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+
+  /* V5 "Studio" — groen accent, theme-afhankelijk (:root/.dark hieronder). */
+  --color-v5-green: var(--v5-green);
+  --color-v5-green-hover: var(--v5-green-hover);
+  --color-v5-green-foreground: var(--v5-green-foreground);
+  --color-v5-green-tint: var(--v5-green-tint);
+  --color-v5-green-deep: var(--v5-green-deep);
+
+  /* Chrome en shadow-card zijn al plain custom properties in @theme (boven),
+     maar chrome heeft geen theme-afhankelijkheid nodig — direct herbruikbaar.
+     shadow-card wisselt wel per thema, dus die loopt via deze indirectie. */
+  --shadow-v5-card: var(--v5-shadow-card-active);
 }
 
 /*
@@ -131,8 +160,8 @@
   --foreground: var(--vfy-ink);
   --card: #ffffff;
   --card-foreground: var(--vfy-ink);
-  --primary: var(--vfy-teal-ink);
-  --primary-foreground: #ffffff;
+  --primary: var(--v5-green);
+  --primary-foreground: var(--v5-green-foreground);
   --secondary: var(--vfy-sand-deep);
   --secondary-foreground: var(--vfy-ink);
   --muted: var(--vfy-sand-deep);
@@ -143,7 +172,7 @@
   --destructive-foreground: #ffffff;
   --border: var(--vfy-border);
   --input: var(--vfy-border);
-  --ring: var(--vfy-teal);
+  --ring: var(--v5-green);
 
   /* Chartpalet/avatarpalet: gevalideerd tegen deze surface (#ffffff) met
      validate_palette.js --mode light --surface #ffffff → ALL CHECKS PASS
@@ -165,6 +194,15 @@
   --shadow-sm: 0 1px 2px rgba(29, 29, 27, 0.06), 0 1px 1px rgba(29, 29, 27, 0.04);
   --shadow-md: 0 4px 10px rgba(29, 29, 27, 0.08), 0 2px 4px rgba(29, 29, 27, 0.05);
   --shadow-lg: 0 16px 32px rgba(29, 29, 27, 0.16), 0 6px 12px rgba(29, 29, 27, 0.09);
+
+  /* V5 "Studio" groen — licht. Contrast nagerekend: wit/green 4.98:1,
+     wit/green-hover 6.58:1, ink/green-tint 14.91:1. */
+  --v5-green: #14804a;
+  --v5-green-hover: #0f6b3d;
+  --v5-green-foreground: #ffffff;
+  --v5-green-tint: #e7f4ec;
+  --v5-green-deep: #0b5230;
+  --v5-shadow-card-active: var(--v5-shadow-card);
 }
 
 .dark {
@@ -185,8 +223,8 @@
   --foreground: var(--vfy-ink);
   --card: #1c1f22;
   --card-foreground: var(--vfy-ink);
-  --primary: var(--vfy-teal-hover);
-  --primary-foreground: #0e2420;
+  --primary: var(--v5-green);
+  --primary-foreground: var(--v5-green-foreground);
   --secondary: var(--vfy-sand-deep);
   --secondary-foreground: var(--vfy-ink);
   --muted: var(--vfy-sand-deep);
@@ -197,7 +235,7 @@
   --destructive-foreground: #2b0a13;
   --border: var(--vfy-border);
   --input: var(--vfy-border);
-  --ring: var(--vfy-teal-hover);
+  --ring: var(--v5-green);
 
   /* Zelfde 8 hues, donkere stap. Gevalideerd tegen deze surface (#16181a)
      met --mode dark --surface #16181a → ALL CHECKS PASS (worst adjacent CVD
@@ -218,6 +256,17 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.45);
+
+  /* V5 "Studio" groen — donker. Wit op deze heldere groen haalt maar 2.42:1;
+     donkere ink-tekst haalt 6.70:1 — zelfde patroon als --primary-foreground
+     hierboven voor --vfy-teal-hover. Contrast: ink/green 6.70:1,
+     chrome-ink/green-deep 10.73:1. */
+  --v5-green: #2fbd76;
+  --v5-green-hover: #4bcf8c;
+  --v5-green-foreground: #0e2420;
+  --v5-green-tint: rgba(47, 189, 118, 0.16);
+  --v5-green-deep: #123a26;
+  --v5-shadow-card-active: var(--v5-shadow-card-dark);
 }
 
 .sand {
