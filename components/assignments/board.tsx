@@ -17,6 +17,9 @@ import { AlertTriangle, ChevronDown } from "lucide-react";
 import { ageColorClassName, PriorityBadge } from "@/components/assignments/assignment-card";
 import { EditItemsChecklist } from "@/components/assignments/edit-items-checklist";
 import { ProgressBar } from "@/components/assignments/progress-bar";
+import { AccoMark } from "@/components/ui/acco-mark";
+import { GoalTile } from "@/components/ui/goal-tile";
+import { PhotoPips } from "@/components/ui/photo-pips";
 import { avatarColorVar } from "@/lib/avatar-color";
 import type { AssignmentListItem, AssignmentStatus, EditItem } from "@/lib/assignments";
 import { boardStatuses } from "@/lib/assignments";
@@ -53,6 +56,7 @@ export function Board({
   canBulkManage,
   onSelect,
   onStatusChange,
+  density = "comfortable",
 }: {
   assignments: AssignmentListItem[];
   goalLabels: Map<string, string>;
@@ -64,6 +68,9 @@ export function Board({
   canBulkManage: boolean;
   onSelect: (id: string, checked: boolean) => void;
   onStatusChange: (assignmentId: string, nextStatus: AssignmentStatus) => void;
+  /** V5 "Studio" (BUILDPLAN-V5 §WP3.2): "comfortable" is de mockup-kaart met
+   * GoalTile-strip, "compact" is de V4-rij. Zelfde kolomcap in beide. */
+  density?: "comfortable" | "compact";
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -116,19 +123,33 @@ export function Board({
                       {(expandedColumns.has(status)
                         ? group.assignments
                         : group.assignments.slice(0, COLUMN_CAP)
-                      ).map((assignment) => (
-                        <BoardCard
-                          assignment={assignment}
-                          canBulkManage={canBulkManage}
-                          editItems={editItemsByAssignment.get(assignment.id) ?? []}
-                          goalLabels={goalLabels}
-                          key={assignment.id}
-                          onSelect={onSelect}
-                          qcReminderDays={qcReminderDays}
-                          selected={selectedIds.has(assignment.id)}
-                          today={today}
-                        />
-                      ))}
+                      ).map((assignment) =>
+                        density === "compact" ? (
+                          <BoardCard
+                            assignment={assignment}
+                            canBulkManage={canBulkManage}
+                            editItems={editItemsByAssignment.get(assignment.id) ?? []}
+                            goalLabels={goalLabels}
+                            key={assignment.id}
+                            onSelect={onSelect}
+                            qcReminderDays={qcReminderDays}
+                            selected={selectedIds.has(assignment.id)}
+                            today={today}
+                          />
+                        ) : (
+                          <ComfortableCard
+                            assignment={assignment}
+                            canBulkManage={canBulkManage}
+                            editItems={editItemsByAssignment.get(assignment.id) ?? []}
+                            goalLabels={goalLabels}
+                            key={assignment.id}
+                            onSelect={onSelect}
+                            qcReminderDays={qcReminderDays}
+                            selected={selectedIds.has(assignment.id)}
+                            today={today}
+                          />
+                        ),
+                      )}
                       {!expandedColumns.has(status) && group.assignments.length > COLUMN_CAP ? (
                         <button
                           className="w-full border-t border-border px-3 py-2 text-center text-xs font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -294,6 +315,123 @@ function BoardCard({
         </div>
       </div>
       {expanded ? <EditItemsChecklist goalLabels={goalLabels} items={editItems} /> : null}
+    </article>
+  );
+}
+
+/**
+ * V5 "Studio" — de mockup-kaart (BUILDPLAN-V5 §WP3.1): GoalTile-strip als
+ * gekleurde kop i.p.v. een thumbnail (DESIGN-V5.md §2), AccoMark i.p.v. een
+ * kale acco-id-link, PhotoPips i.p.v. de kale voortgangsbalk. Zelfde
+ * dnd/selectie-affordances als BoardCard (compact), zodat beide dichtheden
+ * hetzelfde gedrag houden — alleen de weergave verschilt.
+ */
+function ComfortableCard({
+  assignment,
+  goalLabels,
+  editItems,
+  selected,
+  canBulkManage,
+  onSelect,
+  qcReminderDays,
+  today,
+}: {
+  assignment: AssignmentListItem;
+  goalLabels: Map<string, string>;
+  editItems: EditItem[];
+  selected: boolean;
+  canBulkManage: boolean;
+  onSelect: (id: string, checked: boolean) => void;
+  qcReminderDays: number;
+  today: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: assignment.id,
+  });
+  const days = daysBetween(assignment.requestDate ?? assignment.createdAt, assignment.completedDate ?? today);
+  const needsQcAttention = assignment.status === "qc" && days > qcReminderDays;
+  const editorName = assignment.editorName ?? "Niet toegewezen";
+  const photoNumbers = [...new Set(editItems.map((item) => item.photoNumber))].sort((a, b) => a - b);
+  const doneNumbers = new Set(
+    photoNumbers.filter((n) => editItems.filter((item) => item.photoNumber === n).every((item) => item.done)),
+  );
+  const goals = assignment.goals.map((code) => ({ code, label: goalLabels.get(code) ?? code }));
+
+  return (
+    <article
+      className={cn(
+        "m-2 overflow-hidden rounded-lg border border-border bg-card shadow-v5-card transition-[transform,box-shadow] duration-fast ease-standard",
+        selected && "ring-2 ring-primary",
+        needsQcAttention && "bg-warning-tint",
+        isDragging && "opacity-50",
+      )}
+      style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined}
+    >
+      <GoalTile goals={goals} variant="strip" />
+
+      <div className="flex flex-col gap-2.5 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {canBulkManage ? (
+              <input
+                aria-label={`Selecteer opdracht ${assignment.accoId}`}
+                checked={selected}
+                className="size-3.5 shrink-0 rounded-sm border-input accent-primary"
+                onChange={(event) => onSelect(assignment.id, event.target.checked)}
+                type="checkbox"
+              />
+            ) : null}
+            <button
+              aria-label={`Sleep opdracht ${assignment.accoId} naar een andere status`}
+              className="shrink-0 cursor-grab touch-none rounded-sm text-muted-foreground/50 hover:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing"
+              ref={setNodeRef}
+              type="button"
+              {...listeners}
+              {...attributes}
+            >
+              <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 16 16">
+                <circle cx="5" cy="4" fill="currentColor" r="1.3" />
+                <circle cx="5" cy="8" fill="currentColor" r="1.3" />
+                <circle cx="5" cy="12" fill="currentColor" r="1.3" />
+                <circle cx="11" cy="4" fill="currentColor" r="1.3" />
+                <circle cx="11" cy="8" fill="currentColor" r="1.3" />
+                <circle cx="11" cy="12" fill="currentColor" r="1.3" />
+              </svg>
+            </button>
+            <Link
+              className="min-w-0 focus-visible:outline-2 focus-visible:outline-ring"
+              href={`/opdrachten/${assignment.id}`}
+            >
+              <AccoMark accoId={assignment.accoId} />
+            </Link>
+          </div>
+          <PriorityBadge priority={assignment.priority} />
+        </div>
+
+        <p className="truncate text-xs text-muted-foreground">
+          {assignment.rentalExpertName ?? "Onbekend"}
+        </p>
+
+        {photoNumbers.length > 0 ? <PhotoPips done={doneNumbers} photoNumbers={photoNumbers} /> : null}
+
+        <div className="flex items-center justify-between gap-2 border-t border-border pt-2.5">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span
+              className="grid size-5 shrink-0 place-items-center rounded-full border-2 bg-muted font-mono text-[9px] font-semibold text-muted-foreground"
+              style={{ borderColor: avatarColorVar(editorName) }}
+            >
+              {initials(editorName)}
+            </span>
+            <span className="max-w-28 truncate text-xs text-muted-foreground">{editorName}</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1 text-xs tabular-nums">
+            {needsQcAttention ? (
+              <AlertTriangle aria-label="QC wacht langer dan ingesteld" className="size-3.5 text-warning" />
+            ) : null}
+            <span className={ageColorClassName(days)}>{days}d</span>
+          </div>
+        </div>
+      </div>
     </article>
   );
 }

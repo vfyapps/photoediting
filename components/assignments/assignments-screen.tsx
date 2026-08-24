@@ -85,6 +85,11 @@ export function AssignmentsScreen({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Puur client-side gelezen (geen server-parsing zoals view/group in
+  // page.tsx): de mockup-dichtheid (3 royale kaarten per kolom) houdt geen
+  // rekening met 164 opdrachten in "Nieuw" (DESIGN-V5.md §3, BUILDPLAN-V5
+  // §WP3.2). Comfortable is standaard, compact is de V4-rij.
+  const density = searchParams.get("density") === "compact" ? "compact" : "comfortable";
   const [isNavigating, startNavigation] = useTransition();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchDraft, setSearchDraft] = useState(filters.search);
@@ -205,17 +210,14 @@ export function AssignmentsScreen({
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              VfY Fotobewerking
-            </p>
-            <div className="mt-1 flex items-baseline gap-3">
-              <h1 className="text-xl font-semibold tracking-tight">Opdrachten</h1>
-              <span className="text-sm text-muted-foreground">
-                {assignments.length} {assignments.length === 1 ? "opdracht" : "opdrachten"}
-              </span>
-            </div>
+        {/* V5 "Studio": geen eyebrow-regel meer (BUILDPLAN-V5 §WP1.3), titel
+            groter/vetter, geen border-b (meer lucht i.p.v. hairlines). */}
+        <header className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-baseline gap-3">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight">Opdrachten</h1>
+            <span className="text-sm text-muted-foreground">
+              {assignments.length} {assignments.length === 1 ? "opdracht" : "opdrachten"}
+            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -228,6 +230,17 @@ export function AssignmentsScreen({
               ]}
               value={view}
             />
+            {view === "board" ? (
+              <SegmentedControl
+                label="Dichtheid"
+                onChange={(nextDensity) => replaceParams({ density: nextDensity === "comfortable" ? null : nextDensity })}
+                options={[
+                  { icon: Columns3, label: "Ruim", value: "comfortable" },
+                  { icon: List, label: "Compact", value: "compact" },
+                ]}
+                value={density}
+              />
+            ) : null}
             <SegmentedControl
               label="Groeperen"
               onChange={(nextGroup) => replaceParams({ group: nextGroup })}
@@ -416,6 +429,7 @@ export function AssignmentsScreen({
             <Board
               assignments={effectiveAssignments}
               canBulkManage={canBulkManage}
+              density={density}
               editItemsByAssignment={editItemsByAssignment}
               goalLabels={goalLabels}
               isCoordinator={canBulkManage}
