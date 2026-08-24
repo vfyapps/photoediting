@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { avatarColorVar } from "@/lib/avatar-color";
 
 const roles = ["admin", "coordinator", "editor", "viewer"] as const;
 const roleLabels: Record<(typeof roles)[number], string> = {
@@ -24,6 +25,16 @@ const roleLabels: Record<(typeof roles)[number], string> = {
 
 const selectClassName =
   "h-8 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-50";
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
 function formatLastSignIn(value: string | null) {
   if (!value) return "Nog nooit ingelogd";
@@ -139,7 +150,17 @@ function UserRow({ user, canManage, isSelf }: { user: AdminUserRow; canManage: b
 
   return (
     <TableRow>
-      <TableCell className="font-medium">{user.fullName}</TableCell>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          <span
+            className="grid size-6 shrink-0 place-items-center rounded-full border-2 bg-muted font-mono text-[9px] font-semibold text-muted-foreground"
+            style={{ borderColor: avatarColorVar(user.fullName) }}
+          >
+            {initials(user.fullName)}
+          </span>
+          {user.fullName}
+        </div>
+      </TableCell>
       <TableCell className="text-muted-foreground">{user.email ?? "—"}</TableCell>
       <TableCell>
         {canManage ? (

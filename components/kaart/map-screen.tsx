@@ -3,13 +3,45 @@
 import "leaflet/dist/leaflet.css";
 
 import { useMemo, useState } from "react";
+import L from "leaflet";
 import { AlertTriangle, Camera, Diamond } from "lucide-react";
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { Marker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
 
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
 import { haversineDistanceKm } from "@/lib/geo";
 import type { PhotographerPoint, ShootCluster } from "@/lib/shoot-map";
+
+// V5 "Studio" (BUILDPLAN-V5 §WP8.1): pin-vorm i.p.v. cirkels, in dezelfde
+// tokenkleuren als daarvoor (locatie chart-2, fotograaf chart-7). Leaflet
+// heeft geen ingebouwde pin-marker; een inline SVG divIcon is de gangbare
+// manier om er een te tekenen zonder een extra icon-library.
+function pinIcon(color: string, size: number) {
+  return L.divIcon({
+    className: "",
+    html: `<svg width="${size}" height="${size * 1.3}" viewBox="0 0 24 31" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 19 12 19s12-10 12-19c0-6.6-5.4-12-12-12z"
+        fill="${color}" stroke="var(--card, #fff)" stroke-width="1.5" />
+      <circle cx="12" cy="12" r="4.5" fill="var(--card, #fff)" />
+    </svg>`,
+    iconAnchor: [size / 2, size * 1.3],
+    iconSize: [size, size * 1.3],
+    tooltipAnchor: [0, -size],
+  });
+}
+
+function diamondIcon(color: string, size: number) {
+  return L.divIcon({
+    className: "",
+    html: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4" y="4" width="16" height="16" rx="3" fill="${color}" stroke="var(--card, #fff)"
+        stroke-width="1.5" transform="rotate(45 12 12)" />
+    </svg>`,
+    iconAnchor: [size / 2, size / 2],
+    iconSize: [size, size],
+    tooltipAnchor: [0, -size / 2],
+  });
+}
 
 const openStatuses = ["Assigned", "Readytoshoot", "Signedup", "Onhold"];
 const statusLabels: Record<string, string> = {
@@ -136,44 +168,44 @@ export function MapScreen({
 
             {filteredClusters.map((cluster) => {
               const isSelected = selectedCluster?.key === cluster.key;
-              const radius = 6 + 3 * Math.sqrt(cluster.shoots.length);
+              const size = 24 + 3 * Math.sqrt(cluster.shoots.length);
+              // Popover zonder foto (BUILDPLAN-V5 §WP8.1): plaats, aantal
+              // shoots en de statusverdeling — dat is de info die een foto
+              // hier zou moeten dragen, en dit is beter: direct te lezen.
+              const statusCounts = new Map<string, number>();
+              cluster.shoots.forEach((shoot) => {
+                statusCounts.set(shoot.status, (statusCounts.get(shoot.status) ?? 0) + 1);
+              });
               return (
-                <CircleMarker
-                  center={[cluster.lat, cluster.lon]}
+                <Marker
                   eventHandlers={{ click: () => setSelection({ type: "cluster", key: cluster.key }) }}
+                  icon={pinIcon("var(--chart-2)", isSelected ? size + 6 : size)}
                   key={cluster.key}
-                  pathOptions={{
-                    color: "var(--card, #fff)",
-                    weight: isSelected ? 2 : 1,
-                    fillColor: "var(--chart-2)",
-                    fillOpacity: isSelected ? 1 : 0.8,
-                  }}
-                  radius={radius}
+                  position={[cluster.lat, cluster.lon]}
                 >
                   <Tooltip>
-                    {cluster.land}.{cluster.postcode} ({cluster.placeName}) — {cluster.shoots.length} shoot(s)
+                    <span className="font-semibold">
+                      {cluster.land}.{cluster.postcode} ({cluster.placeName})
+                    </span>
+                    <br />
+                    {cluster.shoots.length} shoot(s):{" "}
+                    {[...statusCounts.entries()].map(([status, count]) => `${count}× ${statusLabels[status] ?? status}`).join(", ")}
                   </Tooltip>
-                </CircleMarker>
+                </Marker>
               );
             })}
 
             {photographers.map((photographer) => {
               const isSelected = selectedPhotographer?.id === photographer.id;
               return (
-                <CircleMarker
-                  center={[photographer.lat, photographer.lon]}
+                <Marker
                   eventHandlers={{ click: () => setSelection({ type: "photographer", id: photographer.id }) }}
+                  icon={diamondIcon("var(--chart-7)", isSelected ? 22 : 16)}
                   key={photographer.id}
-                  pathOptions={{
-                    color: "var(--card, #fff)",
-                    weight: isSelected ? 2 : 1,
-                    fillColor: "var(--chart-7)",
-                    fillOpacity: isSelected ? 1 : 0.85,
-                  }}
-                  radius={7}
+                  position={[photographer.lat, photographer.lon]}
                 >
                   <Tooltip>{photographer.name}</Tooltip>
-                </CircleMarker>
+                </Marker>
               );
             })}
           </MapContainer>
