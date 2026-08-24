@@ -17,6 +17,7 @@ import {
 import { GoalPhotosPanel } from "@/components/assignment-detail/goal-photos-panel";
 import { QcHistory, type QcRound } from "@/components/assignment-detail/qc-history";
 import { SelfCheckDialog } from "@/components/assignment-detail/self-check-dialog";
+import { Timeline } from "@/components/assignment-detail/timeline";
 import { Badge, Chip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { AssignmentDetail, AssignmentStatus, EditItem } from "@/lib/assignments";
+import type { AssignmentDetail, AssignmentStatus, EditItem, StatusEvent } from "@/lib/assignments";
 import { priorityLabels, statusLabelsNl } from "@/lib/assignments";
 import { canSubmitToQc } from "@/lib/workflow";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function AssignmentDetailScreen({
   editors,
   rentalExperts,
   qcRounds,
+  statusEvents,
 }: {
   assignment: AssignmentDetail;
   editItems: EditItem[];
@@ -65,6 +67,7 @@ export function AssignmentDetailScreen({
   editors: NameOption[];
   rentalExperts: NameOption[];
   qcRounds: QcRound[];
+  statusEvents: StatusEvent[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -103,7 +106,7 @@ export function AssignmentDetailScreen({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl">{assignment.accoId}</h1>
+            <h1 className="font-display text-3xl font-extrabold tracking-tight">{assignment.accoId}</h1>
             <Chip status={statusChip[assignment.status]}>{statusLabelsNl[assignment.status]}</Chip>
             <Badge status={priorityBadge[assignment.priority]}>{priorityLabels[assignment.priority]}</Badge>
             {assignment.importGoalCode && !assignment.goals.includes(assignment.importGoalCode) ? (
@@ -187,6 +190,12 @@ export function AssignmentDetailScreen({
                 </p>
               </div>
             ) : null}
+            <div>
+              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Tijdlijn
+              </h2>
+              <Timeline events={statusEvents} />
+            </div>
           </div>
 
           <GoalPhotosPanel

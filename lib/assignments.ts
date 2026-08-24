@@ -73,6 +73,19 @@ export function toEditItem(row: Tables<"edit_items">): EditItem {
   };
 }
 
+// V5 "Studio" tijdlijn (BUILDPLAN-V5 §WP4.3): status_events bestond al sinds
+// v1 (elke status-overgang wordt automatisch gelogd, db/01_schema.sql) maar
+// werd nergens getoond. actorName is null wanneer de acteur een editor is die
+// de kijker niet mag zien (RLS read_app_users_scoped, V4-WP2) — dat is geen
+// bug, dat is de bestaande privacy-grens; de tijdlijn toont dan gewoon geen naam.
+export type StatusEvent = {
+  id: string;
+  fromStatus: AssignmentStatus | null;
+  toStatus: AssignmentStatus;
+  actorName: string | null;
+  createdAt: string;
+};
+
 export type AssignmentDetail = {
   id: string;
   accoId: string;

@@ -5,6 +5,7 @@ import {
   toAssignmentDetail,
   toEditItem,
   type EditItem,
+  type StatusEvent,
 } from "@/lib/assignments";
 import { getCurrentUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +32,7 @@ export default async function AssignmentDetailPage({
     rawAssignmentResult,
     editorsResult,
     expertsResult,
+    statusEventsResult,
   ] = await Promise.all([
     supabase.from("v_assignments").select("*").eq("id", id).maybeSingle(),
     supabase.from("edit_items").select("*").eq("assignment_id", id).order("photo_number"),
@@ -47,6 +49,12 @@ export default async function AssignmentDetailPage({
     supabase.from("assignments").select("editor_id, rental_expert_id").eq("id", id).maybeSingle(),
     supabase.from("editors").select("id, name").eq("is_active", true).order("name"),
     supabase.from("rental_experts").select("id, name").eq("is_active", true).order("name"),
+    // V5 "Studio" tijdlijn (BUILDPLAN-V5 §WP4.3) — bestond al, stond nergens.
+    supabase
+      .from("status_events")
+      .select("id, from_status, to_status, created_at, actor:app_users(full_name)")
+      .eq("assignment_id", id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (!assignmentResult.data) notFound();
@@ -55,6 +63,13 @@ export default async function AssignmentDetailPage({
   if (!assignment) notFound();
 
   const editItems: EditItem[] = (editItemsResult.data ?? []).map(toEditItem);
+  const statusEvents: StatusEvent[] = (statusEventsResult.data ?? []).map((row) => ({
+    id: row.id,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    actorName: (row.actor as { full_name: string } | null)?.full_name ?? null,
+    createdAt: row.created_at,
+  }));
   const settings = new Map((settingsResult.data ?? []).map((row) => [row.key, row.value ?? ""]));
   const maxPhotos = Number.parseInt(settings.get("max_photos_per_property") ?? "", 10) || 5;
   const magnificBaseUrl = settings.get("magnific_base_url") || null;
@@ -119,6 +134,7 @@ export default async function AssignmentDetailPage({
       prompts={promptsResult.data ?? []}
       qcRounds={rounds}
       rentalExperts={expertsResult.data ?? []}
+      statusEvents={statusEvents}
     />
   );
 }

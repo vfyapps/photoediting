@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { addEditItems, deleteEditItem } from "@/app/(app)/opdrachten/[id]/actions";
 import { toggleEditItemDone } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { GoalTile } from "@/components/ui/goal-tile";
 import type { EditItem } from "@/lib/assignments";
 import { parsePhotoNumbers } from "@/lib/assignments";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export function GoalPhotosPanel({
           .map((goal) => (
             <GoalGroup
               editItems={editItems.filter((item) => item.goalCode === goal.code)}
+              goalCode={goal.code}
               goalLabel={goal.label_nl}
               key={goal.code}
             />
@@ -149,7 +151,24 @@ function AddPhotosForm({
   );
 }
 
-function GoalGroup({ goalLabel, editItems }: { goalLabel: string; editItems: EditItem[] }) {
+/**
+ * V5 "Studio" goal-board (BUILDPLAN-V5 §WP4.2, DESIGN-V5.md §2): GoalTile
+ * draagt nu de identiteit van het doel i.p.v. de kale tekstkop. De
+ * afvink+verwijder-lijst blijft ongewijzigd als children — PhotoPips' chip-
+ * variant ondersteunt geen los afvinken/verwijderen per foto (twee acties per
+ * item), dus een vervanging daar was een functieverlies geweest, geen
+ * verbetering. GoalTile hier alleen voor de visuele identiteit, niet voor de
+ * interactie.
+ */
+function GoalGroup({
+  goalCode,
+  goalLabel,
+  editItems,
+}: {
+  goalCode: string;
+  goalLabel: string;
+  editItems: EditItem[];
+}) {
   const [, startTransition] = useTransition();
   const sorted = [...editItems].sort((a, b) => a.photoNumber - b.photoNumber);
 
@@ -168,11 +187,10 @@ function GoalGroup({ goalLabel, editItems }: { goalLabel: string; editItems: Edi
   }
 
   return (
-    <div className="rounded-md border border-border">
-      <div className="border-b border-border bg-muted/30 px-3 py-1.5 text-xs font-semibold">{goalLabel}</div>
-      <ul className="divide-y divide-border">
+    <GoalTile goals={[{ code: goalCode, label: goalLabel }]} variant="panel">
+      <ul className="-mx-4 -mb-4 divide-y divide-border border-t border-border">
         {sorted.map((item) => (
-          <li className="flex items-center gap-3 px-3 py-2 text-sm" key={item.id}>
+          <li className="flex items-center gap-3 px-4 py-2 text-sm" key={item.id}>
             <input
               aria-label={`Foto ${item.photoNumber} afvinken`}
               checked={item.done}
@@ -194,6 +212,6 @@ function GoalGroup({ goalLabel, editItems }: { goalLabel: string; editItems: Edi
           </li>
         ))}
       </ul>
-    </div>
+    </GoalTile>
   );
 }
